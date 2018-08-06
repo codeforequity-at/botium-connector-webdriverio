@@ -1,0 +1,16 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "WEBDRIVERIO_OPTIONS": {	
+				"desiredCapabilities": {
+					"browserName": "chrome"      
+				}
+			},
+      "WEBDRIVERIO_URL": "https://www.drei.at",
+      "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",
+			"WEBDRIVERIO_OUTPUT_ELEMENT": ".from-watson"
+    }
+  }
+}
