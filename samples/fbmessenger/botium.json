@@ -5,7 +5,12 @@
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {
 				"desiredCapabilities": {
-					"browserName": "chrome"
+					"browserName": "chrome",
+          "__browserName": "edge",
+          "__browserName": "firefox",
+          "moz:firefoxOptions": {
+            "binary": "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe"
+          }
 				}
 			},
       "WEBDRIVERIO_USERNAME": "",
