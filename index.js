@@ -1,18 +1,30 @@
+const util = require('util')
 const async = require('async')
 const webdriverio = require('webdriverio')
 const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
 
+const messengerComProfile = require('./profiles/messenger_com')
+
+const profiles = {
+  'messenger_com': messengerComProfile
+}
+
 const Capabilities = {
   WEBDRIVERIO_OPTIONS: 'WEBDRIVERIO_OPTIONS',
   WEBDRIVERIO_URL: 'WEBDRIVERIO_URL',
+  WEBDRIVERIO_PROFILE: 'WEBDRIVERIO_PROFILE',
   WEBDRIVERIO_OPENBROWSER: 'WEBDRIVERIO_OPENBROWSER',
   WEBDRIVERIO_OPENBOT: 'WEBDRIVERIO_OPENBOT',
   WEBDRIVERIO_SENDTOBOT: 'WEBDRIVERIO_SENDTOBOT',
   WEBDRIVERIO_RECEIVEFROMBOT: 'WEBDRIVERIO_RECEIVEFROMBOT',
+  WEBDRIVERIO_GETBOTMESSAGE: 'WEBDRIVERIO_GETBOTMESSAGE',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
-  WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT'
+  WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
+  WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
+  WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
+  WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD'
 }
 
 const openBrowserDefault = (container, browser) => {
@@ -41,7 +53,6 @@ const sendToBotDefault = (container, browser, msg) => {
   return browser
     .setValue(inputElement, msg.messageText)
     .keys('Enter')
-    .pause(3000)
 }
 
 const receiveFromBotDefault = (container, browser) => {
@@ -68,7 +79,7 @@ const receiveFromBotDefault = (container, browser) => {
 
           for (let i = currentCount; i < r.value.length; i++) {
             debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
-            getBotMessageDefault(container, browser, r.value[i].ELEMENT)
+            container.getBotMessage(container, browser, r.value[i].ELEMENT)
           }
           currentCount = r.value.length
         })
@@ -91,9 +102,8 @@ const getBotMessageDefault = (container, browser, elementId) => {
   debug(`getBotMessageDefault receiving text for element ${elementId}`)
 
   browser.elementIdText(elementId).then((elementValue) => {
-    debug('received elementValue ', elementValue)
     const botMsg = { sender: 'bot', sourceData: { elementValue, elementId }, messageText: elementValue.value }
-    container.queueBotSays(botMsg)
+    container.BotSays(botMsg)
   })
 }
 
@@ -105,16 +115,27 @@ class BotiumConnectorWebdriverIO {
 
   Validate () {
     debug('Validate called')
+
+    if (this.caps[Capabilities.WEBDRIVERIO_PROFILE]) {
+      const profile = profiles[this.caps[Capabilities.WEBDRIVERIO_PROFILE]]
+      if (!profile) throw new Error('WEBDRIVERIO_PROFILE capability invalid')
+      this.caps = Object.assign(this.caps, profile)
+    }
+
     if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS]) throw new Error('WEBDRIVERIO_OPTIONS capability required')
-    if (!this.caps[Capabilities.WEBDRIVERIO_URL] && !this.caps[Capabilities.WEBDRIVERIO_OPENBROWSER]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_OPENBROWSER capability required')
-    if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT capability required')
-    if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT capability required')
-    if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT capability required')
+    if (!this.caps[Capabilities.WEBDRIVERIO_URL] && !this.caps[Capabilities.WEBDRIVERIO_OPENBROWSER]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_OPENBROWSER or WEBDRIVERIO_PROFILE capability required')
+    if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
+    if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
+    if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
 
     this.openBrowser = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBROWSER, openBrowserDefault)
     this.openBot = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBOT, openBotDefault)
     this.sendToBot = this._loadFunction(Capabilities.WEBDRIVERIO_SENDTOBOT, sendToBotDefault)
     this.receiveFromBot = this._loadFunction(Capabilities.WEBDRIVERIO_RECEIVEFROMBOT, receiveFromBotDefault)
+    this.getBotMessage = this._loadFunction(Capabilities.WEBDRIVERIO_GETBOTMESSAGE, getBotMessageDefault)
+
+    if (this.caps[Capabilities.WEBDRIVERIO_IGNOREUPFRONTMESSAGES]) this.ignoreBotMessages = true
+    else this.ignoreBotMessages = false
 
     return Promise.resolve()
   }
@@ -137,11 +158,21 @@ class BotiumConnectorWebdriverIO {
         this.cancelReceive = this.receiveFromBot(this, this.browser)
       })
       .then(() => this.openBot(this, this.browser) || Promise.resolve())
+      .then(() => this.ignoreBotMessages = false)
   }
 
   UserSays (msg) {
-    debug('UserSays called')
+    debug(`UserSays called ${util.inspect(msg)}`)
     return this.sendToBot(this, this.browser, msg)
+  }
+
+  BotSays (msg) {
+    if (this.ignoreBotMessages) {
+      debug(`BotSays ignoring upfront message ${util.inspect(msg)}`)
+    } else {
+      debug(`BotSays called ${util.inspect(msg)}`)
+      return this.queueBotSays(msg)
+    }
   }
 
   Stop () {

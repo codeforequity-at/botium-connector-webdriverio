@@ -1,0 +1,16 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "WEBDRIVERIO_OPTIONS": {
+				"desiredCapabilities": {
+					"browserName": "chrome"
+				}
+			},
+      "WEBDRIVERIO_USERNAME": "",
+      "WEBDRIVERIO_PASSWORD": "",
+      "WEBDRIVERIO_PROFILE": "messenger_com"
+    }
+  }
+}
