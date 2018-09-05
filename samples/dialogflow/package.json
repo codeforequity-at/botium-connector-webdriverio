@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node botiumFluent.js",
     "emulator": "botium-cli emulator",
-    "test": "botium-cli run --convos spec"
+    "test": "botium-cli run mochawesome --reporter-options \"reportTitle=Dialogflow Chatbot GUI Tests,code=false\" -n \"Banking Test Set\" --convos spec"
   },
   "keywords": [],
   "author": "",
