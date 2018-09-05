@@ -5,9 +5,11 @@ const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
 
 const messengerComProfile = require('./profiles/messenger_com')
+const dialogflowComProfile = require('./profiles/dialogflow_com')
 
 const profiles = {
-  'messenger_com': messengerComProfile
+  'messenger_com': messengerComProfile,
+  'dialogflow_com': dialogflowComProfile
 }
 
 const Capabilities = {
@@ -65,9 +67,11 @@ const receiveFromBotDefault = (container, browser) => {
     () => cancelled,
     (cb) => {
       nextloop = false
+      debug(`polling for bot output (${outputElement})`)
       browser
         .waitUntil(() => browser.elements(outputElement).then((r) => r.value.length > currentCount), 20000)
-        .catch(() => {
+        .catch((err) => {
+          debug(`Continue polling for bot output (${err})`)
           nextloop = true
         })
         .then(() => {
@@ -158,7 +162,7 @@ class BotiumConnectorWebdriverIO {
         this.cancelReceive = this.receiveFromBot(this, this.browser)
       })
       .then(() => this.openBot(this, this.browser) || Promise.resolve())
-      .then(() => this.ignoreBotMessages = false)
+      .then(() => { this.ignoreBotMessages = false })
   }
 
   UserSays (msg) {
