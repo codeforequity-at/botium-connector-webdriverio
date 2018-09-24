@@ -20,6 +20,7 @@
         "port": 80
       },
       "WEBDRIVERIO_PROFILE": "dialogflow_com",
+      "WEBDRIVERIO_SCREENSHOTS": "onstop",
       "SCRIPTING_UTTEXPANSION_MODE": "first"
     }
   }

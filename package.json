@@ -1,13 +1,14 @@
 {
   "name": "botium-connector-webdriverio",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Botium Connector for WebdriverIO scripts",
   "main": "dist/botium-connector-webdriverio-cjs.js",
   "module": "dist/botium-connector-webdriverio-es.js",
   "scripts": {
     "build": "npm run eslint && rollup -c",
     "eslint": "eslint index.js",
-    "selenium": "selenium-standalone start --drivers.chrome.version=2.36"
+    "selenium": "selenium-standalone start --drivers.chrome.version=2.36",
+    "phantomjs": "phantomjs --webdriver=4444"
   },
   "repository": {
     "type": "git",
@@ -36,6 +37,7 @@
     "async": "^2.6.1",
     "debug": "^3.1.0",
     "lodash": "^4.17.10",
+    "phantomjs-prebuilt": "^2.1.16",
     "selenium-standalone": "^6.15.1",
     "webdriverio": "^4.13.1"
   }

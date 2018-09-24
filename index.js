@@ -26,7 +26,8 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
-  WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD'
+  WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
+  WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS'
 }
 
 const openBrowserDefault = (container, browser) => {
@@ -69,10 +70,12 @@ const receiveFromBotDefault = (container, browser) => {
       nextloop = false
       debug(`polling for bot output (${outputElement})`)
       browser
-        .waitUntil(() => browser.elements(outputElement).then((r) => r.value.length > currentCount), 20000)
-        .catch((err) => {
-          debug(`Continue polling for bot output (${err})`)
-          nextloop = true
+        .waitUntil(() => browser.elements(outputElement).then((r) => r.value.length > currentCount), 5000)
+        .catch(() => {
+          if (!cancelled) {
+            debug(`Continue polling for bot output ...`)
+            nextloop = true
+          }
         })
         .then(() => {
           if (cancelled || nextloop) return
@@ -112,8 +115,10 @@ const getBotMessageDefault = (container, browser, elementId) => {
 }
 
 class BotiumConnectorWebdriverIO {
-  constructor ({ queueBotSays, caps }) {
+  constructor ({ container, queueBotSays, eventEmitter, caps }) {
+    this.container = container
     this.queueBotSays = queueBotSays
+    this.eventEmitter = eventEmitter
     this.caps = caps
   }
 
@@ -141,6 +146,8 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREUPFRONTMESSAGES]) this.ignoreBotMessages = true
     else this.ignoreBotMessages = false
 
+    if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
+
     return Promise.resolve()
   }
 
@@ -163,6 +170,12 @@ class BotiumConnectorWebdriverIO {
       })
       .then(() => this.openBot(this, this.browser) || Promise.resolve())
       .then(() => { this.ignoreBotMessages = false })
+      .then(() => this.browser.session())
+      .then((session) => {
+        return {
+          browserSessionId: session.sessionId
+        }
+      })
   }
 
   UserSays (msg) {
@@ -175,13 +188,31 @@ class BotiumConnectorWebdriverIO {
       debug(`BotSays ignoring upfront message ${util.inspect(msg)}`)
     } else {
       debug(`BotSays called ${util.inspect(msg)}`)
-      return this.queueBotSays(msg)
+
+      let screenshotPromise = Promise.resolve()
+      if (this.browser && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays') {
+        screenshotPromise = this._takeScreenshot()
+          .then((screenshot) => {
+            msg.attachments = msg.attachments || []
+            msg.attachments.push(screenshot)
+          })
+      }
+      return screenshotPromise.then(() => this.queueBotSays(msg))
     }
   }
 
   Stop () {
     debug('Stop called')
-    return this._stopBrowser()
+
+    if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
+      this._takeScreenshot()
+        .then((screenshot) => {
+          this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+        })
+        .then(() => this._stopBrowser())
+    } else {
+      return this._stopBrowser()
+    }
   }
 
   Clean () {
@@ -217,6 +248,22 @@ class BotiumConnectorWebdriverIO {
     } else {
       return defaultFunction
     }
+  }
+
+  _takeScreenshot () {
+    return this.browser.saveScreenshot()
+      .then((base64) => {
+        debug(`Screenshot taken, size ${base64.length}`)
+        return {
+          base64,
+          mimeType: 'image/png'
+        }
+      })
+      .catch((err) => {
+        const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
+        debug(errMsg)
+        throw new Error(errMsg)
+      })
   }
 }
 
