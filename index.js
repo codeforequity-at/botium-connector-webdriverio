@@ -1,4 +1,5 @@
 const util = require('util')
+const vm = require('vm')
 const async = require('async')
 const webdriverio = require('webdriverio')
 const _ = require('lodash')
@@ -239,16 +240,26 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[capName]) {
       if (_.isFunction(this.caps[capName])) {
         return this.caps[capName]
-      } else {
-        try {
-          const c = require(this.caps[capName])
-          if (_.isFunction(c)) return c
-          else throw new Error(`not a function`)
-        } catch (err) {
-          const errMsg = `Failed loading script ${this.caps[capName]}: ${err}`
-          debug(errMsg)
-          throw new Error(errMsg)
+      }
+      debug(`Capability ${capName} not a function, trying to load as function from file`)
+      try {
+        const c = require(this.caps[capName])
+        if (_.isFunction(c)) return c
+      } catch (err) {
+      }
+      debug(`Capability ${capName} failed loading as function from file , trying as function code`)
+
+      return (container, browser) => {
+        const sandbox = {
+          container,
+          browser,
+          result: null,
+          debug,
+          console
         }
+        vm.createContext(sandbox)
+        vm.runInContext(this.caps[capName], sandbox)
+        return sandbox.result || Promise.resolve()
       }
     } else {
       return defaultFunction
