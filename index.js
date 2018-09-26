@@ -205,7 +205,7 @@ class BotiumConnectorWebdriverIO {
     debug('Stop called')
 
     if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
-      this._takeScreenshot()
+      return this._takeScreenshot()
         .then((screenshot) => {
           this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
         })
@@ -225,7 +225,12 @@ class BotiumConnectorWebdriverIO {
       this.cancelReceive()
     }
     if (this.browser) {
-      return this.browser.end().then(() => { this.browser = null })
+      return this.browser.end()
+        .then(() => { this.browser = null })
+        .catch((err) => {
+          debug(`WARNING: browser.end failed - ${util.inspect(err)}`)
+          this.browser = null
+        })
     }
     return Promise.resolve()
   }
@@ -252,10 +257,10 @@ class BotiumConnectorWebdriverIO {
 
   _takeScreenshot () {
     return this.browser.saveScreenshot()
-      .then((base64) => {
-        debug(`Screenshot taken, size ${base64.length}`)
+      .then((buffer) => {
+        debug(`Screenshot taken, size ${buffer.length}`)
         return {
-          base64,
+          base64: buffer.toString('base64'),
           mimeType: 'image/png'
         }
       })
