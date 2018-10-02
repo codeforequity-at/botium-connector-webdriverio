@@ -168,11 +168,10 @@ class BotiumConnectorWebdriverIO {
       })
       .then(() => this.browser.init())
       .then(() => this.openBrowser(this, this.browser) || Promise.resolve())
+      .then(() => this.openBot(this, this.browser) || Promise.resolve())
       .then(() => {
         this.cancelReceive = this.receiveFromBot(this, this.browser)
       })
-      .then(() => this.openBot(this, this.browser) || Promise.resolve())
-      .then(() => { this.ignoreBotMessages = false })
       .then(() => this.browser.session())
       .then((session) => {
         return {
@@ -183,6 +182,7 @@ class BotiumConnectorWebdriverIO {
 
   UserSays (msg) {
     debug(`UserSays called ${util.inspect(msg)}`)
+    this.ignoreBotMessages = false
     return this.sendToBot(this, this.browser, msg)
   }
 
