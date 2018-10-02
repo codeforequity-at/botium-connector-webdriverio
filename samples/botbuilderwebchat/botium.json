@@ -1,0 +1,15 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "WEBDRIVERIO_URL": "http://help.saxobank.com/customer/en/portal/topics/1110755-essential-account/articles",
+      "WEBDRIVERIO_OPTIONS": {
+        "desiredCapabilities": {
+          "browserName": "chrome"
+        }
+      },
+      "WEBDRIVERIO_PROFILE": "botbuilder_webchat"
+    }
+  }
+}

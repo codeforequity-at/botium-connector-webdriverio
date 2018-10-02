@@ -7,10 +7,12 @@ const debug = require('debug')('botium-connector-webdriverio')
 
 const messengerComProfile = require('./profiles/messenger_com')
 const dialogflowComProfile = require('./profiles/dialogflow_com')
+const botbuilderWebchatProfile = require('./profiles/botbuilder_webchat')
 
 const profiles = {
   'messenger_com': messengerComProfile,
-  'dialogflow_com': dialogflowComProfile
+  'dialogflow_com': dialogflowComProfile,
+  'botbuilder_webchat': botbuilderWebchatProfile
 }
 
 const Capabilities = {
