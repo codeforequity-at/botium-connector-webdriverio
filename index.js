@@ -153,11 +153,10 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
       if (!_.isNumber(this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES])) throw new Error('WEBDRIVERIO_IGNOREWELCOMEMESSAGES capability requires a number')
       this.ignoreWelcomeMessages = this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]
-    }
-    else this.ignoreWelcomeMessages = 0
-    
-    if (this.ignoreBotMessages && this.ignoreWelcomeMessages > 0)throw new Error('WEBDRIVERIO_IGNOREUPFRONTMESSAGES and WEBDRIVERIO_IGNOREWELCOMEMESSAGES are invalid in combination')
-    
+    } else this.ignoreWelcomeMessages = 0
+
+    if (this.ignoreBotMessages && this.ignoreWelcomeMessages > 0) throw new Error('WEBDRIVERIO_IGNOREUPFRONTMESSAGES and WEBDRIVERIO_IGNOREWELCOMEMESSAGES are invalid in combination')
+
     if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
 
     return Promise.resolve()
