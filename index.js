@@ -170,6 +170,8 @@ class BotiumConnectorWebdriverIO {
   Start () {
     debug('Start called')
 
+    this.ignoreWelcomeMessageCounter = this.ignoreWelcomeMessages
+
     return this._stopBrowser()
       .then(() => {
         this.browser = webdriverio.remote(this.caps[Capabilities.WEBDRIVERIO_OPTIONS])
@@ -178,14 +180,15 @@ class BotiumConnectorWebdriverIO {
       .then(() => this.openBrowser(this, this.browser) || Promise.resolve())
       .then(() => this.openBot(this, this.browser) || Promise.resolve())
       .then(() => {
-        this.cancelReceive = this.receiveFromBot(this, this.browser)
-      })
-      .then(() => {
-        if (this.ignoreWelcomeMessages > 0) {
-          debug(`Waiting for ${this.ignoreWelcomeMessages} welcome messages (will be ignored) ...`)
+        if (this.ignoreWelcomeMessageCounter > 0) {
+          debug(`Waiting for ${this.ignoreWelcomeMessageCounter} welcome messages (will be ignored) ...`)
           return new Promise((resolve) => {
             this.ignoreWelcomeMessagesResolve = resolve
+            this.cancelReceive = this.receiveFromBot(this, this.browser)
           })
+        } else {
+          this.ignoreWelcomeMessagesResolve = null
+          this.cancelReceive = this.receiveFromBot(this, this.browser)
         }
       })
       .then(() => this.browser.session())
@@ -205,10 +208,10 @@ class BotiumConnectorWebdriverIO {
   BotSays (msg) {
     if (this.ignoreBotMessages) {
       debug(`BotSays ignoring upfront message ${util.inspect(msg)}`)
-    } else if (this.ignoreWelcomeMessages > 0) {
-      this.ignoreWelcomeMessages--
-      debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessages} remaining ${util.inspect(msg)}`)
-      if (this.ignoreWelcomeMessages === 0 && this.ignoreWelcomeMessagesResolve) {
+    } else if (this.ignoreWelcomeMessageCounter > 0) {
+      this.ignoreWelcomeMessageCounter--
+      debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessageCounter} remaining ${util.inspect(msg)}`)
+      if (this.ignoreWelcomeMessageCounter === 0 && this.ignoreWelcomeMessagesResolve) {
         this.ignoreWelcomeMessagesResolve()
         this.ignoreWelcomeMessagesResolve = null
       }
