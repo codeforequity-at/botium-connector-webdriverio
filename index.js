@@ -28,6 +28,7 @@ const Capabilities = {
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
+  WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
   WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS'
@@ -149,6 +150,14 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREUPFRONTMESSAGES]) this.ignoreBotMessages = true
     else this.ignoreBotMessages = false
 
+    if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
+      if (!_.isNumber(this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES])) throw new Error('WEBDRIVERIO_IGNOREWELCOMEMESSAGES capability requires a number')
+      this.ignoreWelcomeMessages = this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]
+    }
+    else this.ignoreWelcomeMessages = 0
+    
+    if (this.ignoreBotMessages && this.ignoreWelcomeMessages > 0)throw new Error('WEBDRIVERIO_IGNOREUPFRONTMESSAGES and WEBDRIVERIO_IGNOREWELCOMEMESSAGES are invalid in combination')
+    
     if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
 
     return Promise.resolve()
@@ -172,6 +181,14 @@ class BotiumConnectorWebdriverIO {
       .then(() => {
         this.cancelReceive = this.receiveFromBot(this, this.browser)
       })
+      .then(() => {
+        if (this.ignoreWelcomeMessages > 0) {
+          debug(`Waiting for ${this.ignoreWelcomeMessages} welcome messages (will be ignored) ...`)
+          return new Promise((resolve) => {
+            this.ignoreWelcomeMessagesResolve = resolve
+          })
+        }
+      })
       .then(() => this.browser.session())
       .then((session) => {
         return {
@@ -189,6 +206,13 @@ class BotiumConnectorWebdriverIO {
   BotSays (msg) {
     if (this.ignoreBotMessages) {
       debug(`BotSays ignoring upfront message ${util.inspect(msg)}`)
+    } else if (this.ignoreWelcomeMessages > 0) {
+      this.ignoreWelcomeMessages--
+      debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessages} remaining ${util.inspect(msg)}`)
+      if (this.ignoreWelcomeMessages === 0 && this.ignoreWelcomeMessagesResolve) {
+        this.ignoreWelcomeMessagesResolve()
+        this.ignoreWelcomeMessagesResolve = null
+      }
     } else {
       debug(`BotSays called ${util.inspect(msg)}`)
 
