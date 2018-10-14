@@ -21,6 +21,7 @@ const Capabilities = {
   WEBDRIVERIO_PROFILE: 'WEBDRIVERIO_PROFILE',
   WEBDRIVERIO_OPENBROWSER: 'WEBDRIVERIO_OPENBROWSER',
   WEBDRIVERIO_OPENBOT: 'WEBDRIVERIO_OPENBOT',
+  WEBDRIVERIO_OPENBOTPAUSE: 'WEBDRIVERIO_OPENBOTPAUSE',
   WEBDRIVERIO_SENDTOBOT: 'WEBDRIVERIO_SENDTOBOT',
   WEBDRIVERIO_RECEIVEFROMBOT: 'WEBDRIVERIO_RECEIVEFROMBOT',
   WEBDRIVERIO_GETBOTMESSAGE: 'WEBDRIVERIO_GETBOTMESSAGE',
@@ -191,6 +192,7 @@ class BotiumConnectorWebdriverIO {
           this.cancelReceive = this.receiveFromBot(this, this.browser)
         }
       })
+      .then(() => this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE] && this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE]))
       .then(() => this.browser.session())
       .then((session) => {
         return {
@@ -201,13 +203,13 @@ class BotiumConnectorWebdriverIO {
 
   UserSays (msg) {
     debug(`UserSays called ${util.inspect(msg)}`)
-    this.ignoreBotMessages = false
     return this.sendToBot(this, this.browser, msg)
+      .then(() => { this.ignoreBotMessages = false })
   }
 
   BotSays (msg) {
     if (this.ignoreBotMessages) {
-      debug(`BotSays ignoring upfront message ${util.inspect(msg)}`)
+      debug(`BotSays ignoring upfront message`)
     } else if (this.ignoreWelcomeMessageCounter > 0) {
       this.ignoreWelcomeMessageCounter--
       debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessageCounter} remaining ${util.inspect(msg)}`)

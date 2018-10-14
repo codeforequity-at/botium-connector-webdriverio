@@ -1,4 +1,14 @@
+const url = require('url')
+const mime = require('mime-types')
 const debug = require('debug')('botium-connector-webdriverio-messenger_com')
+
+const cleanCssImageUrl = (cssImageUrl) => {
+  if (cssImageUrl.startsWith('url')) {
+    cssImageUrl = cssImageUrl.substr(5, cssImageUrl.length - 7)
+  }
+  const myUrl = url.parse(cssImageUrl, true)
+  return myUrl.query.url || cssImageUrl
+}
 
 module.exports = {
   'WEBDRIVERIO_OPENBOT': (container, browser) => {
@@ -22,22 +32,101 @@ module.exports = {
           .waitForVisible(qrSelector, 20000)
           .click(qrSelector)
       }
-    }
-    if (msg.messageText) {
+    } else if (msg.messageText) {
       return browser.elementActive().then((r) => {
-        const activeElement = r.value && (r.value.ELEMENT || r.value["element-6066-11e4-a52e-4f735466cecf"])
-        if(activeElement){
+        const activeElement = r.value && (r.value.ELEMENT || r.value['element-6066-11e4-a52e-4f735466cecf'])
+        if (activeElement) {
+          let inputElementCount = 0
           return browser
+            .elements('div._o46._3i_m')
+            .then((r) => { inputElementCount = r.value.length })
             .elementIdValue(activeElement, msg.messageText)
             .elementIdValue(activeElement, 'Enter')
-            .pause(1000)
+            .elements('div._o46._3i_m')
+            .waitUntil(() => browser.elements('div._o46._3i_m').then((r) => r.value.length > inputElementCount), 10000)
+            .then(() => debug('input element visible, continuing'))
         }
       })
     }
   },
-  'WEBDRIVERIO_OUTPUT_ELEMENT': 'div._o46:not(._3i_m)',
-  'WEBDRIVERIO_IGNOREUPFRONTMESSAGES': true
-/*  'WEBDRIVERIO_GETBOTMESSAGE': (container, browser, elementId) => {
-    return Promise.resolve()
-  }*/
+  'WEBDRIVERIO_OUTPUT_ELEMENT': 'div._o46.text_align_ltr:not(._3i_m)',
+  'WEBDRIVERIO_IGNOREUPFRONTMESSAGES': true,
+  'WEBDRIVERIO_OPENBOTPAUSE': 5000,
+  'WEBDRIVERIO_GETBOTMESSAGE': (container, browser, elementId) => {
+    debug(`WEBDRIVERIO_GETBOTMESSAGE receiving text for element ${elementId}`)
+
+    const botMsg = { sender: 'bot', buttons: [], cards: [], media: [] }
+
+    browser.elements('div._2zgz')
+      .then((buttonElements) => {
+        return buttonElements.value && Promise.all(buttonElements.value.map(buttonElement =>
+          browser.elementIdText(buttonElement.ELEMENT)
+            .then((buttonText) => {
+              botMsg.buttons.push({ text: buttonText.value })
+            })
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting button text: ${err}`))
+        ))
+      })
+      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting button texts: ${err}`))
+      .elementIdElement(elementId, 'div._3cn0')
+      .then((cardElement) => {
+        if (cardElement.value) {
+          botMsg.cards.push({ buttons: [] })
+          return browser.elementIdElement(cardElement.value.ELEMENT, 'div._4y9n')
+            .then((imgElement) => imgElement.value && browser.elementIdCssProperty(imgElement.value.ELEMENT, 'background-image'))
+            .then((imgBackground) => {
+              if (imgBackground && imgBackground.value) {
+                const imgUrl = cleanCssImageUrl(imgBackground.value)
+                botMsg.cards[0].image = {
+                  mediaUri: imgUrl,
+                  mimeType: mime.lookup(imgUrl) || 'application/unknown'
+                }
+              }
+            })
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no background picture: ${err}`))
+            .then(() => browser.elementIdElement(cardElement.value.ELEMENT, 'div._3cne'))
+            .then((textElement) => textElement.value && browser.elementIdText(textElement.value.ELEMENT))
+            .then((cardText) => {
+              if (cardText && cardText.value) {
+                botMsg.cards[0].text = cardText.value
+              }
+            })
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no text: ${err}`))
+            .then(() => browser.elementIdElements(cardElement.value.ELEMENT, 'a._3cnp'))
+            .then((buttonElements) => {
+              return buttonElements.value && Promise.all(buttonElements.value.map(buttonElement =>
+                browser.elementIdText(buttonElement.ELEMENT)
+                  .then((buttonText) => {
+                    botMsg.cards[0].buttons.push({ text: buttonText.value })
+                  })
+                  .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting card button text: ${err}`))
+              ))
+            })
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no buttons: ${err}`))
+        }
+      })
+      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting card: ${err}`))
+      .elementIdElement(elementId, 'div._4tsk')
+      .then((imgElement) => {
+        if (imgElement.value) {
+          return browser.elementIdCssProperty(imgElement.value.ELEMENT, 'background-image')
+            .then((imgBackground) => {
+              if (imgBackground && imgBackground.value) {
+                const imgUrl = cleanCssImageUrl(imgBackground.value)
+                botMsg.media.push({
+                  mediaUri: imgUrl,
+                  mimeType: mime.lookup(imgUrl) || 'application/unknown'
+                })
+              }
+            })
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no background picture: ${err}`))
+        }
+      })
+      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting image: ${err}`))
+      .elementIdText(elementId).then((elementValue) => {
+        botMsg.sourceData = { elementValue, elementId }
+        botMsg.messageText = elementValue.value
+        container.BotSays(botMsg)
+      })
+  }
 }

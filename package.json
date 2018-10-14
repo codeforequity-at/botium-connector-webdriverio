@@ -1,6 +1,6 @@
 {
   "name": "botium-connector-webdriverio",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Botium Connector for WebdriverIO scripts",
   "main": "dist/botium-connector-webdriverio-cjs.js",
   "module": "dist/botium-connector-webdriverio-es.js",
@@ -37,6 +37,7 @@
     "async": "^2.6.1",
     "debug": "^3.1.0",
     "lodash": "^4.17.10",
+    "mime-types": "^2.1.20",
     "phantomjs-prebuilt": "^2.1.16",
     "selenium-standalone": "^6.15.1",
     "webdriverio": "^4.13.1"
