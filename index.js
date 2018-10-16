@@ -1,5 +1,6 @@
 const util = require('util')
 const vm = require('vm')
+const fs = require('fs')
 const async = require('async')
 const webdriverio = require('webdriverio')
 const _ = require('lodash')
@@ -32,7 +33,8 @@ const Capabilities = {
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
   WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
-  WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS'
+  WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
+  WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE'
 }
 
 const openBrowserDefault = (container, browser) => {
@@ -43,6 +45,7 @@ const openBrowserDefault = (container, browser) => {
     .getTitle().then((title) => {
       debug(`URL ${url} opened, page title: ${title}`)
     })
+    .then(() => container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE] && browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]))
 }
 
 const openBotDefault = (container, browser) => {
@@ -199,12 +202,20 @@ class BotiumConnectorWebdriverIO {
           browserSessionId: session.sessionId
         }
       })
+      .catch((err) => {
+        if (debug.enabled) this._saveDebugScreenshot('onstart')
+        throw err
+      })
   }
 
   UserSays (msg) {
     debug(`UserSays called ${util.inspect(msg)}`)
     return this.sendToBot(this, this.browser, msg)
       .then(() => { this.ignoreBotMessages = false })
+      .catch((err) => {
+        if (debug.enabled) this._saveDebugScreenshot('usersays')
+        throw err
+      })
   }
 
   BotSays (msg) {
@@ -309,6 +320,16 @@ class BotiumConnectorWebdriverIO {
         const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
         debug(errMsg)
         throw new Error(errMsg)
+      })
+  }
+
+  _saveDebugScreenshot (section) {
+    this.browser.saveScreenshot()
+      .then((buffer) => {
+        fs.writeFile(section + '.png', buffer, (fsErr) => {
+          if (fsErr) debug('Error saving screenshot', fsErr)
+          else debug('Saved debugging screenshot', section)
+        })
       })
   }
 }

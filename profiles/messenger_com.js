@@ -23,6 +23,7 @@ module.exports = {
       .waitForVisible('._4_j4', 20000)
       .waitForVisible('div._o46', 20000)
       .then(() => debug('facebook messenger fully visible'))
+      .catch((err) => { throw new Error(`WEBDRIVERIO_OPENBOT/messenger_com opening facebook messenger failed: ${err}`) })
   },
   'WEBDRIVERIO_SENDTOBOT': (container, browser, msg) => {
     if (msg.sourceData) {
@@ -45,6 +46,9 @@ module.exports = {
             .elements('div._o46._3i_m')
             .waitUntil(() => browser.elements('div._o46._3i_m').then((r) => r.value.length > inputElementCount), 10000)
             .then(() => debug('input element visible, continuing'))
+            .catch((err) => { throw new Error(`WEBDRIVERIO_SENDTOBOT/messenger_com input failed ${err}`) })
+        } else {
+           throw new Error('WEBDRIVERIO_SENDTOBOT/messenger_com no active element found, input not possible')
         }
       })
     }
@@ -53,7 +57,7 @@ module.exports = {
   'WEBDRIVERIO_IGNOREUPFRONTMESSAGES': true,
   'WEBDRIVERIO_OPENBOTPAUSE': 5000,
   'WEBDRIVERIO_GETBOTMESSAGE': (container, browser, elementId) => {
-    debug(`WEBDRIVERIO_GETBOTMESSAGE receiving text for element ${elementId}`)
+    debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com receiving output for element ${elementId}`)
 
     const botMsg = { sender: 'bot', buttons: [], cards: [], media: [] }
 
@@ -64,10 +68,10 @@ module.exports = {
             .then((buttonText) => {
               botMsg.buttons.push({ text: buttonText.value })
             })
-            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting button text: ${err}`))
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com error getting button text: ${err}`))
         ))
       })
-      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting button texts: ${err}`))
+      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com error getting button texts: ${err}`))
       .elementIdElement(elementId, 'div._3cn0')
       .then((cardElement) => {
         if (cardElement.value) {
@@ -83,7 +87,7 @@ module.exports = {
                 }
               }
             })
-            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no background picture: ${err}`))
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com card has no background picture: ${err}`))
             .then(() => browser.elementIdElement(cardElement.value.ELEMENT, 'div._3cne'))
             .then((textElement) => textElement.value && browser.elementIdText(textElement.value.ELEMENT))
             .then((cardText) => {
@@ -91,7 +95,7 @@ module.exports = {
                 botMsg.cards[0].text = cardText.value
               }
             })
-            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no text: ${err}`))
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com card has no text: ${err}`))
             .then(() => browser.elementIdElements(cardElement.value.ELEMENT, 'a._3cnp'))
             .then((buttonElements) => {
               return buttonElements.value && Promise.all(buttonElements.value.map(buttonElement =>
@@ -99,13 +103,13 @@ module.exports = {
                   .then((buttonText) => {
                     botMsg.cards[0].buttons.push({ text: buttonText.value })
                   })
-                  .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting card button text: ${err}`))
+                  .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com error getting card button text: ${err}`))
               ))
             })
-            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no buttons: ${err}`))
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com card has no buttons: ${err}`))
         }
       })
-      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting card: ${err}`))
+      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com error getting card: ${err}`))
       .elementIdElement(elementId, 'div._4tsk')
       .then((imgElement) => {
         if (imgElement.value) {
@@ -119,10 +123,10 @@ module.exports = {
                 })
               }
             })
-            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE card has no background picture: ${err}`))
+            .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com card has no background picture: ${err}`))
         }
       })
-      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE error getting image: ${err}`))
+      .catch((err) => debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com error getting image: ${err}`))
       .elementIdText(elementId).then((elementValue) => {
         botMsg.sourceData = { elementValue, elementId }
         botMsg.messageText = elementValue.value
