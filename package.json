@@ -7,7 +7,8 @@
   "scripts": {
     "build": "npm run eslint && rollup -c",
     "eslint": "eslint index.js",
-    "selenium": "selenium-standalone start --drivers.chrome.version=2.36",
+    "selenium": "selenium-standalone start",
+    "selenium-install": "selenium-standalone install",
     "phantomjs": "phantomjs --webdriver=4444"
   },
   "repository": {
