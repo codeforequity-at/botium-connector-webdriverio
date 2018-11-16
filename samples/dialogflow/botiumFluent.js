@@ -4,7 +4,7 @@ process.env.BOTIUM_CONFIG = process.env.BOTIUM_CONFIG || './botium-local.json'
 
 const driver = new BotDriver()
 driver.on('MESSAGE_ATTACHMENT', (container, attachment) => {
-  console.log(attachment.base64)
+  console.log('Attachment Base64 Length: ' + attachment.base64.length)
   const buf = Buffer.from(attachment.base64, 'base64')
   require('fs').writeFileSync('./screenshot.png', buf)
 })
@@ -18,7 +18,7 @@ driver.BuildFluent()
   .WaitBotSays((msg) => {
     console.log(msg)
     if (msg.attachments) {
-      console.log(msg.attachments[0].base64)
+      console.log('Attachment Base64 Length: ' + msg.attachments[0].base64.length)
       const buf = Buffer.from(msg.attachments[0].base64, 'base64')
       require('fs').writeFileSync('./screenshot.png', buf)
     }

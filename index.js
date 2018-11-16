@@ -3,6 +3,7 @@ const vm = require('vm')
 const fs = require('fs')
 const async = require('async')
 const webdriverio = require('webdriverio')
+const phantomjs = require('phantomjs-prebuilt')
 const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
 
@@ -34,7 +35,8 @@ const Capabilities = {
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
   WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
-  WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE'
+  WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE',
+  WEBDRIVERIO_START_PHANTOMJS: 'WEBDRIVERIO_START_PHANTOMJS'
 }
 
 const openBrowserDefault = (container, browser) => {
@@ -163,12 +165,21 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
 
+    this.startPhantomJS = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]
+
     return Promise.resolve()
   }
 
   Build () {
     debug('Build called')
-    return Promise.resolve()
+    if (this.startPhantomJS) {
+      debug('Starting phantomJS!')
+      return phantomjs.run('--webdriver=4444').then(program => {
+        this.phantomJSProcess = program
+      })
+    } else {
+      return Promise.resolve()
+    }
   }
 
   Start () {
@@ -259,7 +270,13 @@ class BotiumConnectorWebdriverIO {
 
   Clean () {
     debug('Clean called')
-    return this._stopBrowser()
+    return this._stopBrowser().then(() => {
+      if (this.phantomJSProcess) {
+        debug(`Killing phantomJS process ${this.phantomJSProcess.pid}`)
+        process.kill(this.phantomJSProcess.pid)
+        this.phantomJSProcess = null
+      }
+    })
   }
 
   _stopBrowser () {

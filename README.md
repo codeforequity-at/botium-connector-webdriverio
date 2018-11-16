@@ -34,6 +34,12 @@ With this running Selenium server you can now run the Botium samples.
 
 As a very small replacement you can also start with [Phantomjs](http://phantomjs.org/), a headless browser. You won't need a separate Selenium installation in this case.
 
+### Using the integrated PhantomJS server
+
+Setting the capability "WEBDRIVERIO_START_PHANTOMJS" to true will make Botium start an integrated PhantomJS automatically (and stop it afterwards).
+
+### Starting a separate Phantomjs server
+
 After cloning the repository (see above), just run this command to start PhantomJS server:
 
 ```
@@ -45,9 +51,10 @@ You can run the Botium samples with this PhantomJS server now - but be aware tha
 ## Running the samples
 
 ```
-> npm run phantomjs
 > cd samples/dialogflow
-> node botiumFluen.js
+> npm install && node botiumFluent.js
 ```
 
-Check the botium.json file in the directory for setting up the browser to use for the Botium conversation. You maybe have to tune the Selenium capabilities in the botium.json file - again, in case of troubles with Selenium, this project is not the right place to ask.
+(This sample will use the integrated PhantomJS server)
+
+Check the botium.json files in the sample directories for setting up the browser to use for the Botium conversation. You maybe have to tune the Selenium capabilities in the botium.json file - again, in case of troubles with Selenium, this project is not the right place to ask.

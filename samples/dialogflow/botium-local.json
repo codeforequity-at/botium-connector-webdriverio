@@ -17,6 +17,7 @@
       },
       "WEBDRIVERIO_PROFILE": "dialogflow_com",
       "WEBDRIVERIO_SCREENSHOTS": "onstop",
+      "WEBDRIVERIO_START_PHANTOMJS": true,
       "SCRIPTING_UTTEXPANSION_MODE": "first"
     }
   }

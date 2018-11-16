@@ -5,8 +5,8 @@
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {
         "desiredCapabilities": {
-          "__browserName": "phantomjs",
-          "browserName": "chrome",
+          "browserName": "phantomjs",
+          "__browserName": "chrome",
           "__browserName": "edge",
           "__browserName": "firefox",
           "moz:firefoxOptions": {
