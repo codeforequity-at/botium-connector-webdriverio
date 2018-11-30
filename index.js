@@ -1,6 +1,7 @@
 const util = require('util')
 const vm = require('vm')
 const fs = require('fs')
+const path = require('path')
 const async = require('async')
 const webdriverio = require('webdriverio')
 const phantomjs = require('phantomjs-prebuilt')
@@ -311,14 +312,23 @@ class BotiumConnectorWebdriverIO {
       if (_.isFunction(this.caps[capName])) {
         return this.caps[capName]
       }
-      debug(`Capability ${capName} not a function, trying to load as function from file`)
+
+      debug(`Capability ${capName} not a function, trying to load as function from NPM package`)
       try {
         const c = require(this.caps[capName])
         if (_.isFunction(c)) return c
       } catch (err) {
       }
-      debug(`Capability ${capName} failed loading as function from file , trying as function code`)
 
+      const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
+      debug(`Capability ${capName} failed loading as function from NPM package, trying as function from file ${tryLoadFile}`)
+      try {
+        const c = require(tryLoadFile)
+        if (_.isFunction(c)) return c
+      } catch (err) {
+      }
+
+      debug(`Capability ${capName} failed loading as function from file , trying as function code`)
       return (container, browser) => {
         const sandbox = {
           container,
