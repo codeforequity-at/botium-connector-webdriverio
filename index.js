@@ -62,8 +62,16 @@ const openBotDefault = (container, browser) => {
 
 const sendToBotDefault = (container, browser, msg) => {
   const inputElement = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
+  const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
+  if (msg.sourceData && msg.sourceData.quickReply) {
+    const qrSelector = `button[title*='${msg.sourceData.quickReply}']:not(:disabled)`
+    return browser
+      .waitForVisible(qrSelector, inputElementVisibleTimeout)
+      .click(qrSelector)
+  }
   return browser
+    .waitForEnabled(inputElement, inputElementVisibleTimeout)
     .setValue(inputElement, msg.messageText)
     .keys('Enter')
 }
@@ -94,11 +102,15 @@ const receiveFromBotDefault = (container, browser) => {
         .then((r) => {
           if (cancelled || nextloop) return
 
+          let elementsPromise = Promise.resolve()
           for (let i = currentCount; i < r.value.length; i++) {
-            debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
-            container.getBotMessage(container, browser, r.value[i].ELEMENT)
+            elementsPromise = elementsPromise.then(() => {
+              debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
+              return container.getBotMessage(container, browser, r.value[i].ELEMENT)
+            })
           }
           currentCount = r.value.length
+          return elementsPromise
         })
         .then(() => cb())
         .catch((err) => {
@@ -118,9 +130,9 @@ const receiveFromBotDefault = (container, browser) => {
 const getBotMessageDefault = (container, browser, elementId) => {
   debug(`getBotMessageDefault receiving text for element ${elementId}`)
 
-  browser.elementIdText(elementId).then((elementValue) => {
+  return browser.elementIdText(elementId).then((elementValue) => {
     const botMsg = { sender: 'bot', sourceData: { elementValue, elementId }, messageText: elementValue.value }
-    container.BotSays(botMsg)
+    return container.BotSays(botMsg)
   })
 }
 
