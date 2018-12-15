@@ -14,8 +14,8 @@ function start(container, browser) {
 */
 const start = `
   result = browser
-    .waitForVisible('.cc-compliance', 20000).then(() => console.log('cc-compliance visible'))
-    .click('.cc-compliance')
+    .waitForVisible('.cc-btn', 20000).then(() => console.log('cc-btn visible'))
+    .click('.cc-btn')
     .pause(2000)
     .waitForVisible('#StartChat', 20000).then(() => console.log('troy button visible'))
     .click('#StartChat')
@@ -26,7 +26,7 @@ const start = `
 
 const driver = new BotDriver()
   .setCapability('WEBDRIVERIO_OPENBOT', start)
-  
+
 driver.BuildFluent()
   .Start()
   .WaitBotSaysText(console.log)
@@ -42,4 +42,4 @@ driver.BuildFluent()
   })
   .catch((err) => {
     console.log('ERROR: ', err)
-  })  
+  })

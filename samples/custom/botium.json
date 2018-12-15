@@ -10,6 +10,7 @@
 			},
       "WEBDRIVERIO_URL": "https://www.drei.at",
       "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",
+      "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": ".btn-weiter",
 			"WEBDRIVERIO_OUTPUT_ELEMENT": ".from-watson"
     }
   }

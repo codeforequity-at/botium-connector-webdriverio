@@ -30,6 +30,7 @@ const Capabilities = {
   WEBDRIVERIO_GETBOTMESSAGE: 'WEBDRIVERIO_GETBOTMESSAGE',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
+  WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
@@ -64,6 +65,7 @@ const openBotDefault = (container, browser) => {
 const sendToBotDefault = (container, browser, msg) => {
   const inputElement = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
+  const inputElementSendButton = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.sourceData && msg.sourceData.quickReply) {
     const qrSelector = `button[title*='${msg.sourceData.quickReply}']:not(:disabled)`
@@ -71,10 +73,18 @@ const sendToBotDefault = (container, browser, msg) => {
       .waitForVisible(qrSelector, inputElementVisibleTimeout)
       .click(qrSelector)
   }
-  return browser
-    .waitForEnabled(inputElement, inputElementVisibleTimeout)
-    .setValue(inputElement, msg.messageText)
-    .keys('Enter')
+  if (inputElementSendButton) {
+    return browser
+      .waitForEnabled(inputElement, inputElementVisibleTimeout)
+      .setValue(inputElement, msg.messageText)
+      .waitForVisible(inputElementSendButton, inputElementVisibleTimeout)
+      .click(inputElementSendButton)
+  } else {
+    return browser
+      .waitForEnabled(inputElement, inputElementVisibleTimeout)
+      .setValue(inputElement, msg.messageText)
+      .keys('Enter')
+  }
 }
 
 const receiveFromBotDefault = (container, browser) => {
