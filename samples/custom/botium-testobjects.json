@@ -5,9 +5,16 @@
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {	
 				"desiredCapabilities": {
-					"browserName": "chrome"      
-				}
-			},
+          "deviceName": "iPhone 6",
+          "platformName": "IOS",
+          "platformVersion": "10.3.3",
+          "testobject_api_key": "xxx"
+        },
+        "protocol": "https",
+        "host": "eu1.appium.testobject.com",
+        "port": "",
+        "path": "/wd/hub"
+      },
       "WEBDRIVERIO_URL": "https://www.drei.at",
       "WEBDRIVERIO_OPENBOT": "./snippets/openbot",
       "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",

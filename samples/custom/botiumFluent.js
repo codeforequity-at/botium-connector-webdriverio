@@ -12,6 +12,7 @@ function start(container, browser) {
     .waitForVisible('.from-watson', 10000).then(() => console.log('troy welcome visible'))
 }
 */
+/*
 const start = `
   result = browser
     .waitForVisible('.cc-btn', 20000).then(() => console.log('cc-btn visible'))
@@ -23,9 +24,10 @@ const start = `
     .waitForVisible('#textInput', 10000).then(() => console.log('troy textInput visible'))
     .waitForVisible('.from-watson', 10000).then(() => console.log('troy welcome visible'))
 `
+*/
 
 const driver = new BotDriver()
-  .setCapability('WEBDRIVERIO_OPENBOT', start)
+//  .setCapability('WEBDRIVERIO_OPENBOT', start)
 
 driver.BuildFluent()
   .Start()

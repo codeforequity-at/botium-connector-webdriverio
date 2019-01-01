@@ -9,7 +9,7 @@ driver.on('MESSAGE_ATTACHMENT', (container, attachment) => {
   require('fs').writeFileSync('./screenshot.png', buf)
 })
 driver.on('CONTAINER_STARTED', (container, context) => {
-  console.log('CONTAINER_STARTED ' + JSON.stringify(context));
+  console.log('CONTAINER_STARTED ' + JSON.stringify(context))
 })
 
 driver.BuildFluent()
