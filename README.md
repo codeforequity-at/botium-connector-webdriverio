@@ -109,9 +109,9 @@ If you ever worked with Selenium, you are aware that writing an automation scrip
 All those assumptions can be parameterized for adapting it to your actual chatbot website with Botium capabilities:
 
 * _WEBDRIVERIO_URL_ to point to the website to launch for accessing the chatbot
-* _WEBDRIVERIO_INPUT_ELEMENT_, the (Webdriver selector)[https://webdriver.io/docs/selectors.html] for the input text field
-* _WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON_, the (Webdriver selector)[https://webdriver.io/docs/selectors.html] for the "Send"-Button (if present, otherwise message to the chatbot is sent with "Enter" key)
-* _WEBDRIVERIO_OUTPUT_ELEMENT_, the (Webdriver selector)[https://webdriver.io/docs/selectors.html] for the chatbot output elements
+* _WEBDRIVERIO_INPUT_ELEMENT_, the [Webdriver selector](https://webdriver.io/docs/selectors.html) for the input text field
+* _WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON_, the [Webdriver selector](https://webdriver.io/docs/selectors.html) for the "Send"-Button (if present, otherwise message to the chatbot is sent with "Enter" key)
+* _WEBDRIVERIO_OUTPUT_ELEMENT_, the [Webdriver selector](https://webdriver.io/docs/selectors.html) for the chatbot output elements
 
 If there are additional steps (mouse clicks) to do on the website before the chatbot is accessible, you will have to extend the pre-defined Selenium scripts with custom behaviour (see below).
 
@@ -124,7 +124,7 @@ For chatbots published with the [Bot Framework Webchat Widget](https://github.co
 For chatbots published as Dialogflow "Web Demo". Point the capability _WEBDRIVERIO_URL_ to the full URL of the embedded Dialogflow Web Demo (for example: "https://console.dialogflow.com/api-client/demo/embedded/d388ac41-5c60-483f-b89b-0ec0d99d848d").
 
 ### messenger_com - Facebook Messenger Chatbot (experimental)
-For chatbots published in (Facebook Messenger)[https://www.messenger.com].
+For chatbots published in [Facebook Messenger](https://www.messenger.com).
 
 * Point the capability _WEBDRIVERIO_URL_ to the full URL of the chatbot page (for example: "https://www.messenger.com/t/1271293572983985").
 * Additionally, set the capabilities _WEBDRIVERIO_USERNAME_ and _WEBDRIVERIO_PASSWORD_ to your Facebook credentials
