@@ -164,7 +164,7 @@ Extension function called with arguments: _container_, _browser_
 ### WEBDRIVERIO_SENDTOBOT
 Pre-defined behaviour:
 * Set value of text input field
-* Send "Enter" or simulate button click
+* Send "Enter" or simulate button click (if WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON capability is available)
 
 This has to be customized rarely.
 
@@ -251,22 +251,80 @@ Check the botium.json files in the sample directories for setting up the browser
 Set the capability __CONTAINERMODE__ to __webdriverio__ to activate this connector.
 
 ### WEBDRIVERIO_OPTIONS
+The [Webdriver.io](https://webdriver.io/docs/options.html)-Options (see above)
+
 ### WEBDRIVERIO_URL
-### WEBDRIVERIO_PROFILE
-### WEBDRIVERIO_OPENBROWSER
-### WEBDRIVERIO_OPENBOT
-### WEBDRIVERIO_OPENBOTPAUSE
-### WEBDRIVERIO_SENDTOBOT
-### WEBDRIVERIO_RECEIVEFROMBO
-### WEBDRIVERIO_GETBOTMESSAGE
-### WEBDRIVERIO_INPUT_ELEMENT
-### WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT
-### WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON
-### WEBDRIVERIO_OUTPUT_ELEMENT
-### WEBDRIVERIO_IGNOREUPFRONTMESSAGES
-### WEBDRIVERIO_IGNOREWELCOMEMESSAGES
-### WEBDRIVERIO_USERNAME
-### WEBDRIVERIO_PASSWORD
-### WEBDRIVERIO_SCREENSHOTS
+The url to open in the browser
+
 ### WEBDRIVERIO_VIEWPORT_SIZE
+Set browser view port size to dimensions
+Example:
+
+    ...
+    WEBDRIVERIO_VIEWPORT_SIZE: { width: 1280, height: 768 },
+    ...
+
+### WEBDRIVERIO_PROFILE
+Choose pre-defined Selenium scripts (see above)
+
+* botbuilder_webchat - Microsoft Bot Framework Webchat
+* dialogflow_com - Dialogflow Web Demo Chatbot
+* messenger_com - Facebook Messenger Chatbot (experimental)
+
+### WEBDRIVERIO_OPENBROWSER
+Extension function to start up the browser (see above)
+
+### WEBDRIVERIO_OPENBOT
+Extension function to navigate to the chatbot and/or make the chatbot visible after opening the url in the browser (see above)
+
+### WEBDRIVERIO_OPENBOTPAUSE
+Pause execution for given amount of milliseconds after the chatbot is visible (maybe waiting for initialization)
+
+### WEBDRIVERIO_SENDTOBOT
+Extension function to send a message to the chatbot (see above)
+
+### WEBDRIVERIO_RECEIVEFROMBOT
+Extension function to gather chatbot response (see above)
+
+### WEBDRIVERIO_GETBOTMESSAGE
+Extension function to extract the message from the chatbot response element (see above)
+
+### WEBDRIVERIO_INPUT_ELEMENT
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for the input text field
+
+### WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT
+_Default: 10000ms (10 sec)_
+
+Wait for the input element to become visible. If not visible within this amount of milliseconds, test fails.
+
+### WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON
+Simulate button click for sending a text message (if not set: _Enter_ key is simulated)
+
+### WEBDRIVERIO_OUTPUT_ELEMENT
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for the chatbot output elements
+
+### WEBDRIVERIO_IGNOREUPFRONTMESSAGES
+_Default: false_
+
+If set, all chatbot responses received before first message is sent are ignored. This is for ignoring welcome messages and other things sent upfront from the chatbot (usage instructions, welcome back, ...)
+
+### WEBDRIVERIO_IGNOREWELCOMEMESSAGES
+Ignore a fixed number of messages received from the chatbot. For instance, if there are always 4 welcome messages displayed, set this capability to _4_ to ignore them.
+
+### WEBDRIVERIO_USERNAME and WEBDRIVERIO_PASSWORD
+Login data if required - _messenger_com_-profile requires Facebook login.
+
+### WEBDRIVERIO_SCREENSHOTS
+_Default: none_
+
+Make screenshots and include it in the Botium message
+* _none_ - no screenshots
+* _onbotsays_ - attach screenshot after each received message
+* _onstop_ - attach screenshot after conversation is ready
+
+*Note: when debug mode is enabled (environment variable DEBUG=botium-connector-webdriverio\*) screenshots are saved to the local directory on failure*
+
 ### WEBDRIVERIO_START_PHANTOMJS
+_Default: false_
+
+Start the integrated PhantomJS server automatically
