@@ -1,21 +1,19 @@
 {
-  "name": "samples",
+  "name": "dialogflow",
   "version": "1.0.0",
-  "description": "",
-  "main": "botiumFluent.js",
   "scripts": {
-    "start": "node botiumFluent.js",
-    "emulator-local": "botium-cli emulator --config botium-local.json",
-    "test-local": "botium-cli run mochawesome --config botium-local.json --reporter-options code=false -n \"Banking Test Set\" --convos spec",
-    "emulator-remote": "botium-cli emulator --config botium-saucelabs.json",
-    "test-remote": "botium-cli run mochawesome --config botium-saucelabs.json --reporter-options code=false -n \"Banking Test Set\" --convos spec"
+    "test": "BOTIUM_CONFIG=botium-local.json mocha spec"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "botium-cli": "*",
+  "devDependencies": {
+    "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
-    "botium-core": "*"
+    "mocha": "latest"
+  },
+  "botium": {
+    "convodirs": [
+      "spec\\convo"
+    ],
+    "expandConvos": true,
+    "expandUtterancesToConvos": false
   }
 }

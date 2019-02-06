@@ -1,0 +1,7 @@
+transfer.sender.check
+
+#me
+transfersendercheck_input
+
+#bot
+transfersendercheck_output_0

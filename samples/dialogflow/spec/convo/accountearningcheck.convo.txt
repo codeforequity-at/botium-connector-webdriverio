@@ -1,0 +1,7 @@
+account.earning.check
+
+#me
+accountearningcheck_input
+
+#bot
+accountearningcheck_output_0

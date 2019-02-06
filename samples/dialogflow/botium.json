@@ -1,0 +1,10 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "dialogflow",
+      "CONTAINERMODE": "echo"
+    },
+    "Sources": {},
+    "Envs": {}
+  }
+}

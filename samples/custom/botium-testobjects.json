@@ -19,7 +19,16 @@
       "WEBDRIVERIO_OPENBOT": "./snippets/openbot",
       "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",
       "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": ".btn-weiter",
-			"WEBDRIVERIO_OUTPUT_ELEMENT": ".from-watson"
+      "WEBDRIVERIO_OUTPUT_ELEMENT": ".from-watson",
+      "WEBDRIVERIO_IGNOREUPFRONTMESSAGES": true,
+      "WEBDRIVERIO_START_SELENIUM": true,
+      "WEBDRIVERIO_START_SELENIUM_OPTS": {
+        "drivers": {
+          "chrome": {
+            "version": "2.36"
+          }
+        }
+      }
     }
   }
 }

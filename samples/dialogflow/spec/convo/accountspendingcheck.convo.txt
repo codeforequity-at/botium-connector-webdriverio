@@ -1,0 +1,7 @@
+account.spending.check
+
+#me
+accountspendingcheck_input
+
+#bot
+accountspendingcheck_output_0

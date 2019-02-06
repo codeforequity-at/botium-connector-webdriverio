@@ -1,12 +1,11 @@
 {
   "botium": {
     "Capabilities": {
-      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "PROJECTNAME": "fbmessenger",
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {
         "desiredCapabilities": {
-          "browserName": "phantomjs",
-          "__browserName": "chrome",
+          "browserName": "chrome",
           "__browserName": "edge",
           "__browserName": "firefox",
           "moz:firefoxOptions": {
@@ -16,11 +15,20 @@
             "args": [ "--headless", "--disable-gpu" ]
           }
         }
-			},
-      "WEBDRIVERIO_USERNAME": "",
-      "WEBDRIVERIO_PASSWORD": "",
+      },
+      "WEBDRIVERIO_URL": "https://www.messenger.com/t/1919178811662091",
+      "WEBDRIVERIO_USERNAME": "...",
+      "WEBDRIVERIO_PASSWORD": "...",
       "WEBDRIVERIO_PROFILE": "messenger_com",
-      "WEBDRIVERIO_VIEWPORT_SIZE": { "width": 1024, "height": 768 }
+      "WEBDRIVERIO_VIEWPORT_SIZE": { "width": 1024, "height": 768 },
+      "WEBDRIVERIO_START_SELENIUM": true,
+      "WEBDRIVERIO_START_SELENIUM_OPTS": {
+        "drivers": {
+          "chrome": {
+            "version": "2.36"
+          }
+        }
+      }
     }
   }
 }

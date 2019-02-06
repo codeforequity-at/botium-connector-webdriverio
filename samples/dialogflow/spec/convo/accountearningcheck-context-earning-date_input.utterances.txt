@@ -1,0 +1,5 @@
+accountearningcheck-context-earning-date_input
+check January 1 too
+what about December 30
+Check January 1.
+and January 2

@@ -1,0 +1,7 @@
+transfer.amount.check
+
+#me
+transferamountcheck_input
+
+#bot
+transferamountcheck_output_0

@@ -1,0 +1,13 @@
+T1_Transfer_Money_to_savings_account_Regression
+
+#me
+$500 should be transferred to my savings account
+
+#bot
+All right. So, you're transferring $amount from your $account-from to a $account-to. Is that right?
+
+#me
+yes please
+
+#bot
+Okay, I have processed your transfer. Your confirmation number is:
