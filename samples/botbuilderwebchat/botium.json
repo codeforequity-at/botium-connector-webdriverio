@@ -6,7 +6,10 @@
       "WEBDRIVERIO_URL": "https://microsoft.github.io/BotFramework-WebChat/01.a.getting-started-full-bundle/",
       "WEBDRIVERIO_OPTIONS": {
         "desiredCapabilities": {
-          "browserName": "chrome"
+          "browserName": "chrome",
+          "chromeOptions": {
+            "args": [ "--headless" ]
+          }          
         }
       },
       "WEBDRIVERIO_PROFILE": "botbuilder_webchat_v4",

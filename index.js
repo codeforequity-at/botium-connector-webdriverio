@@ -387,6 +387,7 @@ class BotiumConnectorWebdriverIO {
     }
     if (this.browser) {
       return this.browser.end()
+        .then(() => this.browser.pause(2000))
         .then(() => { this.browser = null })
         .catch((err) => {
           debug(`WARNING: browser.end failed - ${util.inspect(err)}`)
