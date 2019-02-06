@@ -248,7 +248,7 @@ This example selects the cloud device provider Saucelabs:
 
 ```
 > cd samples/dialogflow
-> npm install && node botiumFluent.js
+> npm install && npm test
 ```
 
 (This sample will use the integrated PhantomJS server)
