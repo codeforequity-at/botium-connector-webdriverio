@@ -10,6 +10,7 @@ Supports running [Botium](https://github.com/codeforequity-at/botium-core) scrip
 
 __Did you read the [Botium in a Nutshell](https://medium.com/@floriantreml/botium-in-a-nutshell-part-1-overview-f8d0ceaf8fb4) articles ? Be warned, without prior knowledge of Botium you won't be able to properly use this library!__
 
+
 ## How it works ?
 Botium uses the [Webdriver.io](https://webdriver.io/) library to run conversations against a chatbot running on a website.
 
