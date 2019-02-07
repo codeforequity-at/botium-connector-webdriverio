@@ -1,0 +1,2 @@
+transfermoney-yes_output_0
+Okay, I have processed your transfer. Your confirmation number is:

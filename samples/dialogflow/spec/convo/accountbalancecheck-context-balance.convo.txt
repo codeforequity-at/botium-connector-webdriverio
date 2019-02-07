@@ -1,0 +1,7 @@
+account.balance.check - context: balance
+
+#me
+accountbalancecheck-context-balance_input
+
+#bot
+accountbalancecheck-context-balance_output_0

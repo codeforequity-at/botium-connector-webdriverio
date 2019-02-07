@@ -1,0 +1,7 @@
+account.open
+
+#me
+accountopen_input
+
+#bot
+accountopen_output_0

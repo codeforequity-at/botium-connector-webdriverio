@@ -1,0 +1,13 @@
+transfer.money - transfer.money - no
+
+#me
+transfermoney_input
+
+#bot
+transfermoney_output_0
+
+#me
+transfermoney-no_input
+
+#bot
+transfermoney-no_output_0

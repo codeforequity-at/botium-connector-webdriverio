@@ -56,6 +56,8 @@ An installed and running Selenium server is required. If you don't have a Seleni
 
 As a starter, this repository includes scripts for installing and starting a Selenium server with the help of [selenium-standalone](https://github.com/vvo/selenium-standalone)-package. 
 
+#### Preparation
+
 First, you have to install a recent Java Runtime Environment - see [here](https://github.com/vvo/selenium-standalone#ensure-you-have-the-minimum-required-java-version) for required versions. An of course, you need Node.js and Git client.
 
 Clone the repository:
@@ -73,7 +75,11 @@ It downloads and installs the __latest webdrivers for common browsers__. Maybe y
 
 _Note: in case of troubles with Selenium installation, this project is not the right place to ask, as it is almost surly a problem with Selenium, not with Botium._
 
-Start the Selenium server:
+#### Start the integreated Selenium server
+
+To automatically start the integrated Selenium server when Botium is executing, use the **WEBDRIVERIO_START_SELENIUM** capability (see below).
+
+#### Start the Selenium server from command line
 
 ```
 > npm run selenium
@@ -117,8 +123,11 @@ If there are additional steps (mouse clicks) to do on the website before the cha
 
 For some common chatbot widgets and websites, Botium provides out-of-the-box Selenium scripts by setting the Botium capability __WEBDRIVERIO_PROFILE__ to one of the pre-defined Selenium scripts.
 
-### botbuilder_webchat - Microsoft Bot Framework Webchat
+### botbuilder_webchat_(version) - Microsoft Bot Framework Webchat
 For chatbots published with the [Bot Framework Webchat Widget](https://github.com/Microsoft/BotFramework-WebChat). Point the capability _WEBDRIVERIO_URL_ to the full URL of the website where the widget is embedded.
+Currently supported:
+* botbuilder_webchat_v3
+* botbuilder_webchat_v4
 
 ### dialogflow_com - Dialogflow Web Demo Chatbot
 For chatbots published as Dialogflow "Web Demo". Point the capability _WEBDRIVERIO_URL_ to the full URL of the embedded Dialogflow Web Demo (for example: "https://console.dialogflow.com/api-client/demo/embedded/d388ac41-5c60-483f-b89b-0ec0d99d848d").
@@ -239,7 +248,7 @@ This example selects the cloud device provider Saucelabs:
 
 ```
 > cd samples/dialogflow
-> npm install && node botiumFluent.js
+> npm install && npm test
 ```
 
 (This sample will use the integrated PhantomJS server)
@@ -303,6 +312,19 @@ Simulate button click for sending a text message (if not set: _Enter_ key is sim
 ### WEBDRIVERIO_OUTPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the chatbot output elements
 
+### WEBDRIVERIO_OUTPUT_ELEMENT_TEXT
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the text portion within the identified output elements - default behaviour is to just get the displayed text
+
+### WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS
+_Default: .//button | .//a[@href]_
+
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the buttons within the identified output elements - default behaviour is to read HTML buttons and hyperlinks
+
+### WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA
+_Default: .//img | .//video | .//audio_
+
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the media attachments within the identified output elements - default behaviour is to check for pictures, videos and audio attachments
+
 ### WEBDRIVERIO_IGNOREUPFRONTMESSAGES
 _Default: false_
 
@@ -324,7 +346,18 @@ Make screenshots and include it in the Botium message
 
 *Note: when debug mode is enabled (environment variable DEBUG=botium-connector-webdriverio\*) screenshots are saved to the local directory on failure*
 
-### WEBDRIVERIO_START_PHANTOMJS
+### WEBDRIVERIO_START_SELENIUM and WEBDRIVERIO_START_SELENIUM_OPTS
 _Default: false_
+
+_Default opts: none (use default options)_
+
+Start the integrated Selenium server automatically.
+
+The options are handed over to Selenium-standalone 1:1 - see [here](https://github.com/vvo/selenium-standalone#example) for examples how to adapt it to your driver versions.
+
+### WEBDRIVERIO_START_PHANTOMJS and WEBDRIVERIO_START_PHANTOMJS_ARGS
+_Default: false_
+
+_Default args: --webdriver=4444_
 
 Start the integrated PhantomJS server automatically

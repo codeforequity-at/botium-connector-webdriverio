@@ -3,13 +3,25 @@
     "Capabilities": {
       "PROJECTNAME": "WebdriverIO Plugin Sample",
       "CONTAINERMODE": "webdriverio",
-      "WEBDRIVERIO_URL": "http://help.saxobank.com/customer/en/portal/topics/1110755-essential-account/articles",
+      "WEBDRIVERIO_URL": "https://microsoft.github.io/BotFramework-WebChat/01.a.getting-started-full-bundle/",
       "WEBDRIVERIO_OPTIONS": {
         "desiredCapabilities": {
-          "browserName": "chrome"
+          "browserName": "chrome",
+          "chromeOptions": {
+            "args": [ "--headless" ]
+          }          
         }
       },
-      "WEBDRIVERIO_PROFILE": "botbuilder_webchat"
+      "WEBDRIVERIO_PROFILE": "botbuilder_webchat_v4",
+      "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
+      "WEBDRIVERIO_START_SELENIUM": true,
+      "WEBDRIVERIO_START_SELENIUM_OPTS": {
+        "drivers": {
+          "chrome": {
+            "version": "2.36"
+          }
+        }
+      }
     }
   }
 }

@@ -1,0 +1,7 @@
+account.earning.check - context: earning - date
+
+#me
+accountearningcheck-context-earning-date_input
+
+#bot
+accountearningcheck-context-earning-date_output_0

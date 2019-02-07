@@ -26,13 +26,11 @@ module.exports = {
       .catch((err) => { throw new Error(`WEBDRIVERIO_OPENBOT/messenger_com opening facebook messenger failed: ${err}`) })
   },
   'WEBDRIVERIO_SENDTOBOT': (container, browser, msg) => {
-    if (msg.sourceData) {
-      if (msg.sourceData.quickReply) {
-        const qrSelector = 'div._10-e*=' + msg.sourceData.quickReply
-        return browser
-          .waitForVisible(qrSelector, 20000)
-          .click(qrSelector)
-      }
+    if (msg.buttons && msg.buttons.length > 0) {
+      const qrSelector = 'div._10-e*=' + msg.buttons[0].text
+      return browser
+        .waitForVisible(qrSelector, 20000)
+        .click(qrSelector)
     } else if (msg.messageText) {
       return browser.elementActive().then((r) => {
         const activeElement = r.value && (r.value.ELEMENT || r.value['element-6066-11e4-a52e-4f735466cecf'])
@@ -48,7 +46,7 @@ module.exports = {
             .then(() => debug('input element visible, continuing'))
             .catch((err) => { throw new Error(`WEBDRIVERIO_SENDTOBOT/messenger_com input failed ${err}`) })
         } else {
-           throw new Error('WEBDRIVERIO_SENDTOBOT/messenger_com no active element found, input not possible')
+          throw new Error('WEBDRIVERIO_SENDTOBOT/messenger_com no active element found, input not possible')
         }
       })
     }

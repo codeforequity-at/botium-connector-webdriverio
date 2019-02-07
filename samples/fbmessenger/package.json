@@ -1,16 +1,19 @@
 {
-  "name": "samples",
+  "name": "fbmessenger",
   "version": "1.0.0",
-  "description": "",
-  "main": "botiumFluent.js",
   "scripts": {
-    "start": "node botiumFluent.js"
+    "test": "mocha spec"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
+  "devDependencies": {
+    "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
-    "botium-core": "*"
+    "mocha": "latest"
+  },
+  "botium": {
+    "convodirs": [
+      "spec\\convo"
+    ],
+    "expandConvos": true,
+    "expandUtterancesToConvos": false
   }
 }
