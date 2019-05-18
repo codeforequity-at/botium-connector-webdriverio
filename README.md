@@ -10,6 +10,10 @@ Supports running [Botium](https://github.com/codeforequity-at/botium-core) scrip
 
 __Did you read the [Botium in a Nutshell](https://medium.com/@floriantreml/botium-in-a-nutshell-part-1-overview-f8d0ceaf8fb4) articles ? Be warned, without prior knowledge of Botium you won't be able to properly use this library!__
 
+This is technical documentation on a rather low level. As introduction to E2E-Testing with Botium, here are are links to some articles you should read first:
+* [Botium in a Nutshell, Part 6: E2E-Testing with Botium Box](https://medium.com/@floriantreml/botium-in-a-nutshell-part-6-e2e-testing-with-botium-box-9bd8acdf5a70)
+* [Run Selenium Grid and Connect to Botium Box](https://botium.atlassian.net/wiki/spaces/BOTIUM/pages/32145510/Run+Selenium+Grid+and+Connect+to+Botium+Box)
+
 ## How it works ?
 Botium uses the [Webdriver.io](https://webdriver.io/) library to run conversations against a chatbot running on a website.
 
