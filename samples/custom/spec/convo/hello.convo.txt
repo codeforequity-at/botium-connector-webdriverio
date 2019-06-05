@@ -6,10 +6,3 @@ Hallo
 #bot
 Hallo und willkommen
 BUTTONS Passwort vergessen|Tarif wechseln
-
-#me
-Ich möchte kündigen
-
-#bot
-Ich bedauere es sehr
-BUTTONS Mobilfunk-Produkt|Festnetz-Produkt

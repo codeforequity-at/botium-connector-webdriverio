@@ -13,7 +13,6 @@
         }
       },
       "WEBDRIVERIO_PROFILE": "botbuilder_webchat_v4",
-      "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
       "WEBDRIVERIO_START_SELENIUM": true,
       "WEBDRIVERIO_START_SELENIUM_OPTS": {
         "drivers": {
