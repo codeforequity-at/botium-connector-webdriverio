@@ -6,6 +6,7 @@ const async = require('async')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
 const esprima = require('esprima')
+const Mustache = require('mustache')
 const phantomjs = require('phantomjs-prebuilt')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
@@ -36,10 +37,14 @@ const Capabilities = {
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
+  WEBDRIVERIO_INPUT_ELEMENT_BUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_BUTTON',
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT',
+  WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS',
+  WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
+  WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
@@ -79,7 +84,9 @@ const sendToBotDefault = (container, browser, msg) => {
   const inputElementSendButton = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
-    const qrSelector = `button[title*='${msg.buttons[0].text}']:not(:disabled)`
+    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')] | //a[contains(text(),\'{{button.text}}\')]'
+    const qrSelector = Mustache.render(qrSelectorTemplate, { button: msg.buttons[0] })
+    debug(`Waiting for button element to be visible: ${qrSelector}`)
     return browser
       .waitForVisible(qrSelector, inputElementVisibleTimeout)
       .click(qrSelector)
@@ -158,26 +165,44 @@ const getBotMessageDefault = async (container, browser, elementId) => {
 
   const botMsg = { sender: 'bot', sourceData: { elementId } }
 
+  const isNested = (capName, def) => {
+    if (!container.caps.hasOwnProperty(capName)) return def
+    return !!container.caps[capName]
+  }
+
   let textElementId = elementId
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
-    const textElement = await browser.elementIdElement(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+    const textElement = isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)
+      ? await browser.elementIdElement(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      : await browser.element(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
     textElementId = textElement.value.ELEMENT
   }
   const textElementValue = await browser.elementIdText(textElementId)
   botMsg.messageText = textElementValue.value
 
-  const buttonElementIds = await browser.elementIdElements(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+  const buttonElementIds = isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)
+    ? await browser.elementIdElements(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+    : await browser.elements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   for (let bi = 0; bi < buttonElementIds.value.length; bi++) {
     const buttonElementValue = await browser.elementIdText(buttonElementIds.value[bi].ELEMENT)
+
     if (buttonElementValue && buttonElementValue.value) {
-      botMsg.buttons = botMsg.buttons || []
-      botMsg.buttons.push({
+      const button = {
         text: buttonElementValue.value
-      })
+      }
+      const buttonHrefValue = await browser.elementIdAttribute(buttonElementIds.value[bi].ELEMENT, 'href')
+      if (buttonHrefValue && buttonHrefValue.value) {
+        button.payload = buttonHrefValue.value
+      }
+
+      botMsg.buttons = botMsg.buttons || []
+      botMsg.buttons.push(button)
     }
   }
 
-  const mediaElementIds = await browser.elementIdElements(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+  const mediaElementIds = isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)
+    ? await browser.elementIdElements(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+    : await browser.elements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
   for (let mi = 0; mi < mediaElementIds.value.length; mi++) {
     const mediaSrcValue = await browser.elementIdAttribute(mediaElementIds.value[mi].ELEMENT, 'src')
     if (mediaSrcValue && mediaSrcValue.value) {

@@ -346,21 +346,44 @@ Wait for the input element to become visible. If not visible within this amount 
 ### WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON
 Simulate button click for sending a text message (if not set: _Enter_ key is simulated)
 
+### WEBDRIVERIO_INPUT_ELEMENT_BUTTON
+_Default: //button[contains(text(),'{{button.text}}')] | //a[contains(text(),'{{button.text}}')]_
+
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the button to click for the user input method BUTTON in Botium Script:
+
+```
+#me
+BUTTON ClickMe
+```
+
+By default, a button or a hyperlink showing the given text is selected, this should match most use cases. The capability is a [Mustache template](https://github.com/janl/mustache.js) and filled with the button text given in BotiumScript.
+
+For example, if you want to select the button to click based on the _title_ attribute, use this Webdriver selector:
+
+_button[title*='{button.text}']_
+
 ### WEBDRIVERIO_OUTPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the chatbot output elements
 
-### WEBDRIVERIO_OUTPUT_ELEMENT_TEXT
+### WEBDRIVERIO_OUTPUT_ELEMENT_TEXT and WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the text portion within the identified output elements - default behaviour is to just get the displayed text
 
-### WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS
+If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED to _true_ (default).
+
+### WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS and WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED
 _Default: .//button | .//a[@href]_
 
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the buttons within the identified output elements - default behaviour is to read HTML buttons and hyperlinks
 
-### WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA
+If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED to _true_ (default). Some chatbot widgets show Quick Response Buttons as overlay, not within the DOM of the chat window - for these cases, setting this capability to _false_ will help.
+
+
+### WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA and WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED
 _Default: .//img | .//video | .//audio_
 
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the media attachments within the identified output elements - default behaviour is to check for pictures, videos and audio attachments
+
+If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED to _true_ (default).
 
 ### WEBDRIVERIO_IGNOREUPFRONTMESSAGES
 _Default: false_

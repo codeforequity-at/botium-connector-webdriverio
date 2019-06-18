@@ -1,0 +1,15 @@
+tariff
+
+#me
+Hallo
+
+#bot
+Hallo und willkommen
+BUTTONS Passwort vergessen|Tarif wechseln
+
+#me
+BUTTON Tarif wechseln
+
+#bot
+Ich verstehe, dass Sie Ihren Tarif wechseln möchten
+BUTTONS Telefonie-Tari|Internet-Tarif

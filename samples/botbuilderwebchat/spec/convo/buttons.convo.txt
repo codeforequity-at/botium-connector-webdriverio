@@ -1,0 +1,15 @@
+buttons
+
+#me
+suggested-actions
+
+#bot
+Please select one of the actions below
+BUTTONS IM back as string|Post back as string|Post back as JSON
+
+#me
+BUTTON IM back as string
+
+#bot
+Unknown command: postback imback-string.
+Type help to learn more.
