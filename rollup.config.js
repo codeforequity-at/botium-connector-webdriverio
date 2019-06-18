@@ -6,19 +6,20 @@ export default {
   input: 'index.js',
   output: [
     {
-      file: 'dist/botium-connector-directline3-es.js',
+      file: 'dist/botium-connector-webdriverio-es.js',
       format: 'es',
       sourcemap: true
     },
     {
-      file: 'dist/botium-connector-directline3-cjs.js',
+      file: 'dist/botium-connector-webdriverio-cjs.js',
       format: 'cjs',
       sourcemap: true
     }
   ],
   plugins: [
     commonjs({
-      exclude: 'node_modules/**'
+      exclude: 'node_modules/**',
+      ignore: ['conditional-runtime-dependency']
     }),
     babel({
       exclude: 'node_modules/**',

@@ -5,6 +5,7 @@ const path = require('path')
 const async = require('async')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
+const esprima = require('esprima')
 const phantomjs = require('phantomjs-prebuilt')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
@@ -402,35 +403,51 @@ class BotiumConnectorWebdriverIO {
       if (_.isFunction(this.caps[capName])) {
         return this.caps[capName]
       }
+      const loadErr = []
 
-      debug(`Capability ${capName} not a function, trying to load as function from NPM package`)
       try {
         const c = require(this.caps[capName])
-        if (_.isFunction(c)) return c
+        if (_.isFunction(c)) {
+          debug(`Loaded Capability ${capName} function from NPM package ${this.caps[capName]}`)
+          return c
+        } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
       } catch (err) {
+        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message}`)
       }
 
       const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
-      debug(`Capability ${capName} failed loading as function from NPM package, trying as function from file ${tryLoadFile}`)
       try {
         const c = require(tryLoadFile)
-        if (_.isFunction(c)) return c
+        if (_.isFunction(c)) {
+          debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
+          return c
+        } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
       } catch (err) {
+        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message}`)
       }
 
-      debug(`Capability ${capName} failed loading as function from file , trying as function code`)
-      return (container, browser) => {
-        const sandbox = {
-          container,
-          browser,
-          result: null,
-          debug,
-          console
+      try {
+        esprima.parseScript(this.caps[capName])
+        debug(`Loaded Capability ${capName} function as javascript`)
+
+        return (container, browser) => {
+          const sandbox = {
+            container,
+            browser,
+            result: null,
+            debug,
+            console
+          }
+          vm.createContext(sandbox)
+          vm.runInContext(this.caps[capName], sandbox)
+          return sandbox.result || Promise.resolve()
         }
-        vm.createContext(sandbox)
-        vm.runInContext(this.caps[capName], sandbox)
-        return sandbox.result || Promise.resolve()
+      } catch (err) {
+        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message}`)
       }
+
+      loadErr.forEach(d => debug(d))
+      throw new Error(`Failed to fetch Capability ${capName} function, no idea how to load ...`)
     } else {
       return defaultFunction
     }
