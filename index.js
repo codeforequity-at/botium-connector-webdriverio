@@ -225,6 +225,7 @@ class BotiumConnectorWebdriverIO {
     this.queueBotSays = queueBotSays
     this.eventEmitter = eventEmitter
     this.caps = caps
+    this.screenshotCounterBySection = {}
   }
 
   Validate () {
@@ -367,10 +368,11 @@ class BotiumConnectorWebdriverIO {
     } else {
       let screenshotPromise = Promise.resolve()
       if (this.browser && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays') {
-        screenshotPromise = this._takeScreenshot()
+        screenshotPromise = this._takeScreenshot('onbotsays')
           .then((screenshot) => {
             msg.attachments = msg.attachments || []
             msg.attachments.push(screenshot)
+            if (debug.enabled) this._saveDebugScreenshot('usersays')
           })
       }
       return screenshotPromise.then(() => this.queueBotSays(msg))
@@ -381,7 +383,7 @@ class BotiumConnectorWebdriverIO {
     debug('Stop called')
 
     if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
-      return this._takeScreenshot()
+      return this._takeScreenshot('onstop')
         .then((screenshot) => {
           this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
         })
@@ -478,10 +480,17 @@ class BotiumConnectorWebdriverIO {
     }
   }
 
-  _takeScreenshot () {
+  _takeScreenshot (section) {
     return this.browser.saveScreenshot()
       .then((buffer) => {
         debug(`Screenshot taken, size ${buffer.length}`)
+        if (debug.enabled) {
+          const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+          fs.writeFile(filename, buffer, (fsErr) => {
+            if (fsErr) debug('Error saving screenshot', fsErr)
+            else debug('Saved debugging screenshot', filename)
+          })
+        }
         return {
           base64: buffer.toString('base64'),
           mimeType: 'image/png'
@@ -497,11 +506,21 @@ class BotiumConnectorWebdriverIO {
   _saveDebugScreenshot (section) {
     this.browser.saveScreenshot()
       .then((buffer) => {
-        fs.writeFile(section + '.png', buffer, (fsErr) => {
+        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        fs.writeFile(filename, buffer, (fsErr) => {
           if (fsErr) debug('Error saving screenshot', fsErr)
-          else debug('Saved debugging screenshot', section)
+          else debug('Saved debugging screenshot', filename)
         })
       })
+  }
+
+  _screenshotSectionCounter (section) {
+    if (this.screenshotCounterBySection.hasOwnProperty(section)) {
+      this.screenshotCounterBySection[section]++
+    } else {
+      this.screenshotCounterBySection[section] = 1
+    }
+    return this.screenshotCounterBySection[section]
   }
 }
 
