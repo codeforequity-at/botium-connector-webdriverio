@@ -18,10 +18,10 @@ const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
 
 const profiles = {
-  'messenger_com': messengerComProfile,
-  'dialogflow_com': dialogflowComProfile,
-  'botbuilder_webchat_v3': botbuilderWebchatV3Profile,
-  'botbuilder_webchat_v4': botbuilderWebchatV4Profile
+  messenger_com: messengerComProfile,
+  dialogflow_com: dialogflowComProfile,
+  botbuilder_webchat_v3: botbuilderWebchatV3Profile,
+  botbuilder_webchat_v4: botbuilderWebchatV4Profile
 }
 
 const Capabilities = {
@@ -166,7 +166,7 @@ const getBotMessageDefault = async (container, browser, elementId) => {
   const botMsg = { sender: 'bot', sourceData: { elementId } }
 
   const isNested = (capName, def) => {
-    if (!container.caps.hasOwnProperty(capName)) return def
+    if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
     return !!container.caps[capName]
   }
 
@@ -338,8 +338,9 @@ class BotiumConnectorWebdriverIO {
         }
       })
       .catch((err) => {
+        debug(`WebDriver error on startup: ${util.inspect(err)}`)
         if (debug.enabled) this._saveDebugScreenshot('onstart')
-        throw err
+        throw new Error(`WebDriver error on startup: ${util.inspect(err)}`)
       })
   }
 
@@ -348,8 +349,9 @@ class BotiumConnectorWebdriverIO {
     return this.sendToBot(this, this.browser, msg)
       .then(() => { this.ignoreBotMessages = false })
       .catch((err) => {
+        debug(`WebDriver error on UserSays: ${util.inspect(err)}`)
         if (debug.enabled) this._saveDebugScreenshot('usersays')
-        throw err
+        throw new Error(`WebDriver error on UserSays: ${util.inspect(err)}`)
       })
   }
 
@@ -515,7 +517,7 @@ class BotiumConnectorWebdriverIO {
   }
 
   _screenshotSectionCounter (section) {
-    if (this.screenshotCounterBySection.hasOwnProperty(section)) {
+    if (Object.prototype.hasOwnProperty.call(this.screenshotCounterBySection, section)) {
       this.screenshotCounterBySection[section]++
     } else {
       this.screenshotCounterBySection[section] = 1
