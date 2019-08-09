@@ -385,6 +385,11 @@ _Default: .//img | .//video | .//audio_
 
 If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED to _true_ (default).
 
+### WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML
+_Default: false_
+
+Print the output element HTML content to the debug stream. Important for development phase, to actually see what Botium is receiving.
+
 ### WEBDRIVERIO_IGNOREUPFRONTMESSAGES
 _Default: false_
 
@@ -392,6 +397,11 @@ If set, all chatbot responses received before first message is sent are ignored.
 
 ### WEBDRIVERIO_IGNOREWELCOMEMESSAGES
 Ignore a fixed number of messages received from the chatbot. For instance, if there are always 4 welcome messages displayed, set this capability to _4_ to ignore them.
+
+### WEBDRIVERIO_IGNOREEMPTYMESSAGES
+_Default: false_
+
+If set, all recognized messages with don't include a text, buttons or media files are ignored. This is for ignoring messages without any content, for example a placeholder for a "Bot is typing" visualization.
 
 ### WEBDRIVERIO_USERNAME and WEBDRIVERIO_PASSWORD
 Login data if required - _messenger_com_-profile requires Facebook login.
