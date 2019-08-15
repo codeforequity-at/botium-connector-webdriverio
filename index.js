@@ -85,7 +85,7 @@ const sendToBotDefault = (container, browser, msg) => {
   const inputElementSendButton = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
-    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')] | //a[contains(text(),\'{{button.text}}\')]'
+    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')][last()] | //a[contains(text(),\'{{button.text}}\')][last()]'
     const qrSelector = Mustache.render(qrSelectorTemplate, { button: msg.buttons[0] })
     debug(`Waiting for button element to be visible: ${qrSelector}`)
     return browser
@@ -133,7 +133,7 @@ const receiveFromBotDefault = (container, browser) => {
             debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
 
             try {
-              if (container.caps(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML)) {
+              if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
                 const html = await browser.execute('return arguments[0].outerHTML;', r.value[i])
                 debug(html.value)
               }

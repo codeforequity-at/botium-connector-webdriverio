@@ -347,7 +347,7 @@ Wait for the input element to become visible. If not visible within this amount 
 Simulate button click for sending a text message (if not set: _Enter_ key is simulated)
 
 ### WEBDRIVERIO_INPUT_ELEMENT_BUTTON
-_Default: //button[contains(text(),'{{button.text}}')] | //a[contains(text(),'{{button.text}}')]_
+_Default: //button[contains(text(),\'{{button.text}}\')][last()] | //a[contains(text(),\'{{button.text}}\')][last()]_
 
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the button to click for the user input method BUTTON in Botium Script:
 
