@@ -2,7 +2,6 @@ const util = require('util')
 const vm = require('vm')
 const fs = require('fs')
 const path = require('path')
-const async = require('async')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
 const esprima = require('esprima')
@@ -45,8 +44,10 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
+  WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
+  WEBDRIVERIO_IGNOREEMPTYMESSAGES: 'WEBDRIVERIO_IGNOREEMPTYMESSAGES',
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
   WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
@@ -84,22 +85,22 @@ const sendToBotDefault = (container, browser, msg) => {
   const inputElementSendButton = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
-    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')] | //a[contains(text(),\'{{button.text}}\')]'
+    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')][last()] | //a[contains(text(),\'{{button.text}}\')][last()]'
     const qrSelector = Mustache.render(qrSelectorTemplate, { button: msg.buttons[0] })
     debug(`Waiting for button element to be visible: ${qrSelector}`)
     return browser
-      .waitForVisible(qrSelector, inputElementVisibleTimeout)
+      .waitForVisible(qrSelector, inputElementVisibleTimeout).then(() => debug(`button ${qrSelector} is visible, simulating click`))
       .click(qrSelector)
   }
   if (inputElementSendButton) {
     return browser
-      .waitForEnabled(inputElement, inputElementVisibleTimeout)
+      .waitForEnabled(inputElement, inputElementVisibleTimeout).then(() => debug(`input element ${inputElement} is visible, simulating input`))
       .setValue(inputElement, msg.messageText)
-      .waitForVisible(inputElementSendButton, inputElementVisibleTimeout)
+      .waitForVisible(inputElementSendButton, inputElementVisibleTimeout).then(() => debug(`input button ${inputElementSendButton} is visible, simulating click`))
       .click(inputElementSendButton)
   } else {
     return browser
-      .waitForEnabled(inputElement, inputElementVisibleTimeout)
+      .waitForEnabled(inputElement, inputElementVisibleTimeout).then(() => debug(`input element ${inputElement} is visible, simulating Enter`))
       .setValue(inputElement, msg.messageText)
       .keys('Enter')
   }
@@ -109,53 +110,46 @@ const receiveFromBotDefault = (container, browser) => {
   const outputElement = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT]
 
   let cancelled = false
-  let nextloop = false
-  let currentCount = 0
   const handledElements = []
-  async.until(
-    () => cancelled,
-    (cb) => {
-      nextloop = false
-      debug(`polling for bot output (${outputElement}, currentCount: ${currentCount}`)
-      browser
-        .waitUntil(() => browser.elements(outputElement).then((r) => r.value.length > currentCount), 5000)
-        .catch(() => {
-          if (!cancelled) {
-            debug(`Continue polling for bot output ...`)
-            nextloop = true
-          }
-        })
-        .then(() => {
-          if (cancelled || nextloop) return
-          return browser.elements(outputElement)
-        })
-        .then((r) => {
-          if (cancelled || nextloop) return
 
-          let elementsPromise = Promise.resolve()
-          for (let i = 0; i < r.value.length; i++) {
-            if (handledElements.indexOf(r.value[i].ELEMENT) < 0) {
+  const worker = async () => {
+    while (!cancelled) { // eslint-disable-line no-unmodified-loop-condition
+      debug(`polling for bot output (${outputElement}, currentCount: ${handledElements.length}`)
+      try {
+        await browser.waitUntil(() => browser.elements(outputElement).then((r) => r.value.length > handledElements.length), 5000)
+      } catch (err) {
+        if (!cancelled) {
+          debug(`Continue polling for bot output ...`)
+          continue
+        }
+      }
+      try {
+        if (cancelled) break
+        const r = await browser.elements(outputElement)
+        if (cancelled) break
+
+        for (let i = 0; i < r.value.length; i++) {
+          if (handledElements.indexOf(r.value[i].ELEMENT) < 0) {
+            debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
+
+            try {
+              if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
+                const html = await browser.execute('return arguments[0].outerHTML;', r.value[i])
+                debug(html.value)
+              }
+              await container.getBotMessage(container, browser, r.value[i].ELEMENT)
               handledElements.push(r.value[i].ELEMENT)
-              elementsPromise = elementsPromise.then(() => {
-                debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
-                return container.getBotMessage(container, browser, r.value[i].ELEMENT)
-              })
+            } catch (err) {
+              debug(`Failed in getBotMessage, skipping: ${err}`)
             }
           }
-          currentCount = r.value.length
-          return elementsPromise
-        })
-        .then(() => cb())
-        .catch((err) => {
-          debug(`Failed in receiving from bot: ${err}`)
-          cb()
-        })
-    },
-    (err) => {
-      if (err) {
-        debug(`receiveFromBot failed: ${err}`)
+        }
+      } catch (err) {
+        debug(`Failed in receiving from bot: ${err}`)
       }
-    })
+    }
+  }
+  worker().catch((err) => debug(err))
 
   return () => { cancelled = true }
 }
@@ -216,7 +210,7 @@ const getBotMessageDefault = async (container, browser, elementId) => {
     }
   }
 
-  return container.BotSays(botMsg)
+  if (botMsg.messageText || (botMsg.buttons && botMsg.buttons.length > 0) || (botMsg.media && botMsg.media.length > 0) || !container.caps[Capabilities.WEBDRIVERIO_IGNOREEMPTYMESSAGES]) return container.BotSays(botMsg)
 }
 
 class BotiumConnectorWebdriverIO {
