@@ -12,7 +12,7 @@
       "WEBDRIVERIO_OPENBOT": "./snippets/openbot",
       "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",
       "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": ".btn-weiter",
-			"WEBDRIVERIO_OUTPUT_ELEMENT": ".from-watson",
+			"WEBDRIVERIO_OUTPUT_ELEMENT": ".troy__send",
       "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
       "WEBDRIVERIO_START_SELENIUM": true
     }
