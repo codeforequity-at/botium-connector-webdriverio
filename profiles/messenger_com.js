@@ -6,12 +6,12 @@ const cleanCssImageUrl = (cssImageUrl) => {
   if (cssImageUrl.startsWith('url')) {
     cssImageUrl = cssImageUrl.substr(5, cssImageUrl.length - 7)
   }
-  const myUrl = url.parse(cssImageUrl, true)
-  return myUrl.query.url || cssImageUrl
+  const myUrl = new url.URL(cssImageUrl)
+  return (myUrl.searchParams && myUrl.searchParams.url) || cssImageUrl
 }
 
 module.exports = {
-  'WEBDRIVERIO_OPENBOT': (container, browser) => {
+  WEBDRIVERIO_OPENBOT: (container, browser) => {
     return browser
       .waitForVisible('#email', 20000)
       .waitForVisible('#pass', 20000)
@@ -25,7 +25,7 @@ module.exports = {
       .then(() => debug('facebook messenger fully visible'))
       .catch((err) => { throw new Error(`WEBDRIVERIO_OPENBOT/messenger_com opening facebook messenger failed: ${err}`) })
   },
-  'WEBDRIVERIO_SENDTOBOT': (container, browser, msg) => {
+  WEBDRIVERIO_SENDTOBOT: (container, browser, msg) => {
     if (msg.buttons && msg.buttons.length > 0) {
       const qrSelector = 'div._10-e*=' + msg.buttons[0].text
       return browser
@@ -51,10 +51,10 @@ module.exports = {
       })
     }
   },
-  'WEBDRIVERIO_OUTPUT_ELEMENT': 'div._o46.text_align_ltr:not(._3i_m)',
-  'WEBDRIVERIO_IGNOREUPFRONTMESSAGES': true,
-  'WEBDRIVERIO_OPENBOTPAUSE': 5000,
-  'WEBDRIVERIO_GETBOTMESSAGE': (container, browser, elementId) => {
+  WEBDRIVERIO_OUTPUT_ELEMENT: 'div._o46.text_align_ltr:not(._3i_m)',
+  WEBDRIVERIO_IGNOREUPFRONTMESSAGES: true,
+  WEBDRIVERIO_OPENBOTPAUSE: 5000,
+  WEBDRIVERIO_GETBOTMESSAGE: (container, browser, elementId) => {
     debug(`WEBDRIVERIO_GETBOTMESSAGE/messenger_com receiving output for element ${elementId}`)
 
     const botMsg = { sender: 'bot', buttons: [], cards: [], media: [] }

@@ -136,6 +136,9 @@ Currently supported:
 ### dialogflow_com - Dialogflow Web Demo Chatbot
 For chatbots published as Dialogflow "Web Demo". Point the capability _WEBDRIVERIO_URL_ to the full URL of the embedded Dialogflow Web Demo (for example: "https://console.dialogflow.com/api-client/demo/embedded/d388ac41-5c60-483f-b89b-0ec0d99d848d").
 
+### watsonpreview - IBM Watson Assistant Preview Link
+For Watson Assistant chatbots published as [Preview Link](https://cloud.ibm.com/docs/services/assistant?topic=assistant-deploy-web-link). Point the capability _WEBDRIVERIO_URL_ to the full URL of the chatbot page (for example: "https://assistant-chat-eu-de.watsonplatform.net/web/public/xxxxxxx").
+
 ### messenger_com - Facebook Messenger Chatbot (experimental)
 For chatbots published in [Facebook Messenger](https://www.messenger.com).
 
@@ -313,9 +316,11 @@ Example:
 ### WEBDRIVERIO_PROFILE
 Choose pre-defined Selenium scripts (see above)
 
-* botbuilder_webchat - Microsoft Bot Framework Webchat
-* dialogflow_com - Dialogflow Web Demo Chatbot
-* messenger_com - Facebook Messenger Chatbot (experimental)
+* messenger_com - Facebook Messenger (experimental)
+* dialogflow_com - Google Dialogflow Web Demo
+* botbuilder_webchat_v3 - MS BotBuilder Webchat (v3)
+* botbuilder_webchat_v4 - MS BotBuilder Webchat (v4)
+* watsonpreview - IBM Watson Assistant Preview Link
 
 ### WEBDRIVERIO_OPENBROWSER
 Extension function to start up the browser (see above)

@@ -15,12 +15,14 @@ const messengerComProfile = require('./profiles/messenger_com')
 const dialogflowComProfile = require('./profiles/dialogflow_com')
 const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
+const watsonpreviewProfile = require('./profiles/watsonpreview')
 
 const profiles = {
   messenger_com: messengerComProfile,
   dialogflow_com: dialogflowComProfile,
   botbuilder_webchat_v3: botbuilderWebchatV3Profile,
-  botbuilder_webchat_v4: botbuilderWebchatV4Profile
+  botbuilder_webchat_v4: botbuilderWebchatV4Profile,
+  watsonpreview: watsonpreviewProfile
 }
 
 const Capabilities = {
@@ -222,7 +224,7 @@ class BotiumConnectorWebdriverIO {
     this.screenshotCounterBySection = {}
   }
 
-  Validate () {
+  async Validate () {
     debug('Validate called')
 
     if (this.caps[Capabilities.WEBDRIVERIO_PROFILE]) {
@@ -231,7 +233,7 @@ class BotiumConnectorWebdriverIO {
       this.caps = Object.assign(this.caps, profile)
     }
 
-    if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS]) throw new Error('WEBDRIVERIO_OPTIONS capability required')
+    if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_PHANTOMJS)')
     if (!this.caps[Capabilities.WEBDRIVERIO_URL] && !this.caps[Capabilities.WEBDRIVERIO_OPENBROWSER]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_OPENBROWSER or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
@@ -260,19 +262,15 @@ class BotiumConnectorWebdriverIO {
         throw new Error(`WEBDRIVERIO_START_SELENIUM_OPTS JSON.parse failed: ${err}`)
       }
     }
-
-    return Promise.resolve()
   }
 
-  Build () {
+  async Build () {
     debug('Build called')
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
       const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
       debug(`Starting phantomJS with args: ${phantomJsArgs}`)
-      return phantomjs.run(phantomJsArgs).then(program => {
-        this.phantomJSProcess = program
-      })
+      this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
@@ -290,12 +288,10 @@ class BotiumConnectorWebdriverIO {
           }
         })
       })
-    } else {
-      return Promise.resolve()
     }
   }
 
-  Start () {
+  async Start () {
     debug('Start called')
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
@@ -305,51 +301,58 @@ class BotiumConnectorWebdriverIO {
     }
     this.ignoreBotMessages = !!this.caps[Capabilities.WEBDRIVERIO_IGNOREUPFRONTMESSAGES]
 
-    return this._stopBrowser()
-      .then(() => {
-        this.browser = webdriverio.remote(this.caps[Capabilities.WEBDRIVERIO_OPTIONS])
-      })
-      .then(() => this.browser.init())
-      .then(() => this.openBrowser(this, this.browser) || Promise.resolve())
-      .then(() => this.openBot(this, this.browser) || Promise.resolve())
-      .then(() => {
-        if (this.ignoreWelcomeMessageCounter > 0) {
-          debug(`Waiting for ${this.ignoreWelcomeMessageCounter} welcome messages (will be ignored) ...`)
-          return new Promise((resolve) => {
-            this.ignoreWelcomeMessagesResolve = resolve
-            this.cancelReceive = this.receiveFromBot(this, this.browser)
-          })
-        } else {
-          this.ignoreWelcomeMessagesResolve = null
+    try {
+      await this._stopBrowser()
+
+      const options = this.caps[Capabilities.WEBDRIVERIO_OPTIONS] || {}
+      if (!options.desiredCapabilities && this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
+        options.desiredCapabilities = {
+          browserName: 'phantomjs'
+        }
+      }
+      this.browser = webdriverio.remote(options)
+
+      await this.browser.init()
+      await this.openBrowser(this, this.browser)
+      await this.openBot(this, this.browser)
+
+      if (this.ignoreWelcomeMessageCounter > 0) {
+        debug(`Waiting for ${this.ignoreWelcomeMessageCounter} welcome messages (will be ignored) ...`)
+        await new Promise((resolve) => {
+          this.ignoreWelcomeMessagesResolve = resolve
           this.cancelReceive = this.receiveFromBot(this, this.browser)
-        }
-      })
-      .then(() => this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE] && this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE]))
-      .then(() => this.browser.session())
-      .then((session) => {
-        return {
-          browserSessionId: session.sessionId
-        }
-      })
-      .catch((err) => {
-        debug(`WebDriver error on startup: ${util.inspect(err)}`)
-        if (debug.enabled) this._saveDebugScreenshot('onstart')
-        throw new Error(`WebDriver error on startup: ${util.inspect(err)}`)
-      })
+        })
+      } else {
+        this.ignoreWelcomeMessagesResolve = null
+        this.cancelReceive = this.receiveFromBot(this, this.browser)
+      }
+      if (this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE]) {
+        await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE])
+      }
+      const session = await this.browser.session()
+      return {
+        browserSessionId: session.sessionId
+      }
+    } catch (err) {
+      debug(`WebDriver error on startup: ${util.inspect(err)}`)
+      if (debug.enabled) await this._saveDebugScreenshot('onstart')
+      throw new Error(`WebDriver error on startup: ${util.inspect(err)}`)
+    }
   }
 
-  UserSays (msg) {
+  async UserSays (msg) {
     debug(`UserSays called ${util.inspect(msg)}`)
-    return this.sendToBot(this, this.browser, msg)
-      .then(() => { this.ignoreBotMessages = false })
-      .catch((err) => {
-        debug(`WebDriver error on UserSays: ${util.inspect(err)}`)
-        if (debug.enabled) this._saveDebugScreenshot('usersays')
-        throw new Error(`WebDriver error on UserSays: ${util.inspect(err)}`)
-      })
+    try {
+      await this.sendToBot(this, this.browser, msg)
+      this.ignoreBotMessages = false
+    } catch (err) {
+      debug(`WebDriver error on UserSays: ${util.inspect(err)}`)
+      if (debug.enabled) this._saveDebugScreenshot('usersays')
+      throw new Error(`WebDriver error on UserSays: ${util.inspect(err)}`)
+    }
   }
 
-  BotSays (msg) {
+  async BotSays (msg) {
     debug(`BotSays called ${util.inspect(msg)}`)
 
     if (this.ignoreBotMessages) {
@@ -362,47 +365,40 @@ class BotiumConnectorWebdriverIO {
         this.ignoreWelcomeMessagesResolve = null
       }
     } else {
-      let screenshotPromise = Promise.resolve()
       if (this.browser && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays') {
-        screenshotPromise = this._takeScreenshot('onbotsays')
-          .then((screenshot) => {
-            msg.attachments = msg.attachments || []
-            msg.attachments.push(screenshot)
-            if (debug.enabled) this._saveDebugScreenshot('usersays')
-          })
+        const screenshot = await this._takeScreenshot('onbotsays')
+
+        msg.attachments = msg.attachments || []
+        msg.attachments.push(screenshot)
+        if (debug.enabled) await this._saveDebugScreenshot('usersays')
       }
-      return screenshotPromise.then(() => this.queueBotSays(msg))
+      this.queueBotSays(msg)
     }
   }
 
-  Stop () {
+  async Stop () {
     debug('Stop called')
 
     if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
-      return this._takeScreenshot('onstop')
-        .then((screenshot) => {
-          this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
-        })
-        .then(() => this._stopBrowser())
-    } else {
-      return this._stopBrowser()
+      const screenshot = await this._takeScreenshot('onstop')
+      this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
     }
+    await this._stopBrowser()
   }
 
-  Clean () {
+  async Clean () {
     debug('Clean called')
-    return this._stopBrowser().then(() => {
-      if (this.phantomJSProcess) {
-        debug(`Killing phantomJS process ${this.phantomJSProcess.pid}`)
-        process.kill(this.phantomJSProcess.pid)
-        this.phantomJSProcess = null
-      }
-      if (this.seleniumChild) {
-        debug(`Killing selenium process`)
-        this.seleniumChild.kill()
-        this.seleniumChild = null
-      }
-    })
+    await this._stopBrowser()
+    if (this.phantomJSProcess) {
+      debug(`Killing phantomJS process ${this.phantomJSProcess.pid}`)
+      process.kill(this.phantomJSProcess.pid, 'SIGKILL')
+      this.phantomJSProcess = null
+    }
+    if (this.seleniumChild) {
+      debug(`Killing selenium process`)
+      this.seleniumChild.kill('SIGKILL')
+      this.seleniumChild = null
+    }
   }
 
   _stopBrowser () {
@@ -476,38 +472,39 @@ class BotiumConnectorWebdriverIO {
     }
   }
 
-  _takeScreenshot (section) {
-    return this.browser.saveScreenshot()
-      .then((buffer) => {
-        debug(`Screenshot taken, size ${buffer.length}`)
-        if (debug.enabled) {
-          const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-          fs.writeFile(filename, buffer, (fsErr) => {
-            if (fsErr) debug('Error saving screenshot', fsErr)
-            else debug('Saved debugging screenshot', filename)
-          })
-        }
-        return {
-          base64: buffer.toString('base64'),
-          mimeType: 'image/png'
-        }
-      })
-      .catch((err) => {
-        const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
-        debug(errMsg)
-        throw new Error(errMsg)
-      })
-  }
-
-  _saveDebugScreenshot (section) {
-    this.browser.saveScreenshot()
-      .then((buffer) => {
+  async _takeScreenshot (section) {
+    try {
+      const buffer = await this.browser.saveScreenshot()
+      debug(`Screenshot taken, size ${buffer.length}`)
+      if (debug.enabled) {
         const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
         fs.writeFile(filename, buffer, (fsErr) => {
           if (fsErr) debug('Error saving screenshot', fsErr)
           else debug('Saved debugging screenshot', filename)
         })
+      }
+      return {
+        base64: buffer.toString('base64'),
+        mimeType: 'image/png'
+      }
+    } catch (err) {
+      const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
+      debug(errMsg)
+      throw new Error(errMsg)
+    }
+  }
+
+  async _saveDebugScreenshot (section) {
+    try {
+      const buffer = await this.browser.saveScreenshot()
+      const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+      fs.writeFile(filename, buffer, (fsErr) => {
+        if (fsErr) debug('Error saving screenshot', fsErr)
+        else debug('Saved debugging screenshot', filename)
       })
+    } catch (err) {
+      debug(`Failed to take debug screenshot: ${util.inspect(err)}`)
+    }
   }
 
   _screenshotSectionCounter (section) {
@@ -522,5 +519,12 @@ class BotiumConnectorWebdriverIO {
 
 module.exports = {
   PluginVersion: 1,
-  PluginClass: BotiumConnectorWebdriverIO
+  PluginClass: BotiumConnectorWebdriverIO,
+  Profiles: {
+    messenger_com: 'Facebook Messenger (experimental)',
+    dialogflow_com: 'Google Dialogflow Web Demo',
+    botbuilder_webchat_v3: 'MS BotBuilder Webchat (v3)',
+    botbuilder_webchat_v4: 'MS BotBuilder Webchat (v4)',
+    watsonpreview: 'IBM Watson Assistant Preview Link'
+  }
 }
