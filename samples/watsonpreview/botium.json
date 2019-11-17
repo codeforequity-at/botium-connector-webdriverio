@@ -10,7 +10,8 @@
 					"browserName": "chrome"
 				}
 			},
-      "WEBDRIVERIO_START_SELENIUM": true
+      "WEBDRIVERIO_START_SELENIUM": true,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
     }
   }
 }

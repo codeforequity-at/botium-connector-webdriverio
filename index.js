@@ -5,6 +5,7 @@ const mime = require('mime-types')
 const webdriverio = require('webdriverio')
 const esprima = require('esprima')
 const Mustache = require('mustache')
+const crypto = require('crypto')
 const phantomjs = require('phantomjs-prebuilt')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
@@ -32,6 +33,7 @@ const Capabilities = {
   WEBDRIVERIO_SENDTOBOT: 'WEBDRIVERIO_SENDTOBOT',
   WEBDRIVERIO_RECEIVEFROMBOT: 'WEBDRIVERIO_RECEIVEFROMBOT',
   WEBDRIVERIO_GETBOTMESSAGE: 'WEBDRIVERIO_GETBOTMESSAGE',
+  WEBDRIVERIO_SHADOW_ROOT: 'WEBDRIVERIO_SHADOW_ROOT',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
@@ -44,6 +46,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
+  WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_IGNOREEMPTYMESSAGES: 'WEBDRIVERIO_IGNOREEMPTYMESSAGES',
@@ -72,7 +75,7 @@ const openBotDefault = async (container, browser) => {
   const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
-  const inputElement = await browser.$(inputElementSelector)
+  const inputElement = await container.findElement(inputElementSelector)
   await inputElement.waitForDisplayed(inputElementVisibleTimeout)
   debug(`Input element ${inputElementSelector} is visible`)
 }
@@ -87,24 +90,22 @@ const sendToBotDefault = async (container, browser, msg) => {
     const qrSelector = Mustache.render(qrSelectorTemplate, { button: msg.buttons[0] })
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
-    const qrElement = await browser.$(qrSelector)
+    const qrElement = await container.findElement(qrSelector)
     await qrElement.waitForEnabled(inputElementVisibleTimeout)
     debug(`button ${qrSelector} is visible, simulating click`)
     await qrElement.click()
   } else {
-    const inputElement = await browser.$(inputElementSelector)
+    const inputElement = await container.findElement(inputElementSelector)
     await inputElement.waitForEnabled(inputElementVisibleTimeout)
     debug(`input element ${inputElementSelector} is visible, simulating input`)
     if (inputElementSendButtonSelector) {
       await inputElement.setValue(msg.messageText)
-      const inputElementSendButton = await browser.$(inputElementSendButtonSelector)
+      const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
       await inputElementSendButton.waitForEnabled(inputElementVisibleTimeout)
       debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
       await inputElementSendButton.click()
     } else {
       await inputElement.setValue([...msg.messageText, 'Enter'])
-      // await browser.elementSendKeys(inputElement.ELEMENT, ['Enter'])
-      // await browser.keys('Enter')
     }
   }
 }
@@ -120,7 +121,7 @@ const receiveFromBotDefault = (container, browser) => {
       debug(`polling for bot output (${outputElement}, currentCount: ${handledElements.length}`)
       try {
         await browser.waitUntil(async () => {
-          const r = await browser.$$(outputElement)
+          const r = await container.findElements(outputElement)
           return cancelled || r.length > handledElements.length
         }, 5000)
       } catch (err) {
@@ -131,20 +132,27 @@ const receiveFromBotDefault = (container, browser) => {
       }
       try {
         if (cancelled) break
-        const r = await browser.$$(outputElement)
+        const r = await container.findElements(outputElement)
         if (cancelled) break
 
-        for (let i = 0; i < r.length; i++) {
-          if (handledElements.indexOf(r[i].ELEMENT) < 0) {
-            debug(`Found new bot response element ${outputElement}, id ${r[i].ELEMENT}`)
+        for (const element of r) {
+          const html = await browser.execute('return arguments[0].outerHTML;', element)
+          let hashKey
+          if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'ELEMENTID') {
+            hashKey = element.ELEMENT
+          } else {
+            hashKey = crypto.createHash('md5').update(html).digest('hex')
+          }
+
+          if (handledElements.indexOf(hashKey) < 0) {
+            debug(`Found new bot response element ${outputElement}, id ${element.ELEMENT}`)
 
             try {
               if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
-                const html = await browser.execute('return arguments[0].outerHTML;', r[i])
                 debug(html)
               }
-              await container.getBotMessage(container, browser, r[i])
-              handledElements.push(r[i].ELEMENT)
+              await container.getBotMessage(container, browser, element)
+              handledElements.push(hashKey)
             } catch (err) {
               debug(`Failed in getBotMessage, skipping: ${err}`)
             }
@@ -177,7 +185,7 @@ const getBotMessageDefault = async (container, browser, element) => {
         botMsg.messageText = await textElement.getText()
       }
     } else {
-      const textElement = await browser.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      const textElement = await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
       if (textElement) {
         botMsg.messageText = await textElement.getText()
       }
@@ -190,7 +198,7 @@ const getBotMessageDefault = async (container, browser, element) => {
   if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
     buttonElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   } else {
-    buttonElements = await browser.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+    buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   }
   for (const buttonElement of (buttonElements || [])) {
     const buttonElementText = await buttonElement.getText()
@@ -212,7 +220,7 @@ const getBotMessageDefault = async (container, browser, element) => {
   if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
     mediaElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
   } else {
-    mediaElements = await browser.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+    mediaElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
   }
   for (const mediaElement of (mediaElements || [])) {
     const mediaSrcValue = await mediaElement.getAttribute('src')
@@ -332,6 +340,19 @@ class BotiumConnectorWebdriverIO {
       this.browser = await webdriverio.remote(options)
 
       await this.openBrowser(this, this.browser)
+
+      if (this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]) {
+        const shadowRoot = await this.browser.$(this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT])
+        await shadowRoot.waitForDisplayed(10000)
+        debug(`Using shadow root element ${this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]}`)
+
+        this.findElement = (selector) => shadowRoot.shadow$(selector)
+        this.findElements = (selector) => shadowRoot.shadow$$(selector)
+      } else {
+        this.findElement = (selector) => this.browser.$(selector)
+        this.findElements = (selector) => this.browser.$$(selector)
+      }
+
       await this.openBot(this, this.browser)
 
       if (this.ignoreWelcomeMessageCounter > 0) {
