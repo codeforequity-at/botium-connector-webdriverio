@@ -1,6 +1,5 @@
 const util = require('util')
 const vm = require('vm')
-const fs = require('fs')
 const path = require('path')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
@@ -60,51 +59,55 @@ const Capabilities = {
   WEBDRIVERIO_START_PHANTOMJS_ARGS: 'WEBDRIVERIO_START_PHANTOMJS_ARGS'
 }
 
-const openBrowserDefault = (container, browser) => {
+const openBrowserDefault = async (container, browser) => {
   const url = container.caps[Capabilities.WEBDRIVERIO_URL]
 
-  return browser
-    .url(url)
-    .getTitle().then((title) => {
-      debug(`URL ${url} opened, page title: ${title}`)
-    })
-    .then(() => container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE] && browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]))
+  await browser.url(url)
+  const title = await browser.getTitle()
+  debug(`URL ${url} opened, page title: ${title}`)
+  if (container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
+    await browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
+  }
 }
 
-const openBotDefault = (container, browser) => {
-  const inputElement = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
+const openBotDefault = async (container, browser) => {
+  const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
-  return browser
-    .waitForVisible(inputElement, inputElementVisibleTimeout).then(() => {
-      debug(`Input element ${inputElement} is visible`)
-    })
+  const inputElement = await browser.$(inputElementSelector)
+  await inputElement.waitForDisplayed(inputElementVisibleTimeout)
+  debug(`Input element ${inputElementSelector} is visible`)
 }
 
-const sendToBotDefault = (container, browser, msg) => {
-  const inputElement = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
+const sendToBotDefault = async (container, browser, msg) => {
+  const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
-  const inputElementSendButton = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
+  const inputElementSendButtonSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
     const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')][last()] | //a[contains(text(),\'{{button.text}}\')][last()]'
     const qrSelector = Mustache.render(qrSelectorTemplate, { button: msg.buttons[0] })
     debug(`Waiting for button element to be visible: ${qrSelector}`)
-    return browser
-      .waitForVisible(qrSelector, inputElementVisibleTimeout).then(() => debug(`button ${qrSelector} is visible, simulating click`))
-      .click(qrSelector)
-  }
-  if (inputElementSendButton) {
-    return browser
-      .waitForEnabled(inputElement, inputElementVisibleTimeout).then(() => debug(`input element ${inputElement} is visible, simulating input`))
-      .setValue(inputElement, msg.messageText)
-      .waitForVisible(inputElementSendButton, inputElementVisibleTimeout).then(() => debug(`input button ${inputElementSendButton} is visible, simulating click`))
-      .click(inputElementSendButton)
+
+    const qrElement = await browser.$(qrSelector)
+    await qrElement.waitForEnabled(inputElementVisibleTimeout)
+    debug(`button ${qrSelector} is visible, simulating click`)
+    await qrElement.click()
   } else {
-    return browser
-      .waitForEnabled(inputElement, inputElementVisibleTimeout).then(() => debug(`input element ${inputElement} is visible, simulating Enter`))
-      .setValue(inputElement, msg.messageText)
-      .keys('Enter')
+    const inputElement = await browser.$(inputElementSelector)
+    await inputElement.waitForEnabled(inputElementVisibleTimeout)
+    debug(`input element ${inputElementSelector} is visible, simulating input`)
+    if (inputElementSendButtonSelector) {
+      await inputElement.setValue(msg.messageText)
+      const inputElementSendButton = await browser.$(inputElementSendButtonSelector)
+      await inputElementSendButton.waitForEnabled(inputElementVisibleTimeout)
+      debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
+      await inputElementSendButton.click()
+    } else {
+      await inputElement.setValue([...msg.messageText, 'Enter'])
+      // await browser.elementSendKeys(inputElement.ELEMENT, ['Enter'])
+      // await browser.keys('Enter')
+    }
   }
 }
 
@@ -118,29 +121,32 @@ const receiveFromBotDefault = (container, browser) => {
     while (!cancelled) { // eslint-disable-line no-unmodified-loop-condition
       debug(`polling for bot output (${outputElement}, currentCount: ${handledElements.length}`)
       try {
-        await browser.waitUntil(() => browser.elements(outputElement).then((r) => r.value.length > handledElements.length), 5000)
+        await browser.waitUntil(async () => {
+          const r = await browser.$$(outputElement)
+          return cancelled || r.length > handledElements.length
+        }, 5000)
       } catch (err) {
         if (!cancelled) {
-          debug(`Continue polling for bot output ...`)
+          debug('Continue polling for bot output ...')
           continue
         }
       }
       try {
         if (cancelled) break
-        const r = await browser.elements(outputElement)
+        const r = await browser.$$(outputElement)
         if (cancelled) break
 
-        for (let i = 0; i < r.value.length; i++) {
-          if (handledElements.indexOf(r.value[i].ELEMENT) < 0) {
-            debug(`Found new bot response element ${outputElement}, id ${r.value[i].ELEMENT}`)
+        for (let i = 0; i < r.length; i++) {
+          if (handledElements.indexOf(r[i].ELEMENT) < 0) {
+            debug(`Found new bot response element ${outputElement}, id ${r[i].ELEMENT}`)
 
             try {
               if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
-                const html = await browser.execute('return arguments[0].outerHTML;', r.value[i])
-                debug(html.value)
+                const html = await browser.execute('return arguments[0].outerHTML;', r[i])
+                debug(html)
               }
-              await container.getBotMessage(container, browser, r.value[i].ELEMENT)
-              handledElements.push(r.value[i].ELEMENT)
+              await container.getBotMessage(container, browser, r[i])
+              handledElements.push(r[i].ELEMENT)
             } catch (err) {
               debug(`Failed in getBotMessage, skipping: ${err}`)
             }
@@ -156,39 +162,47 @@ const receiveFromBotDefault = (container, browser) => {
   return () => { cancelled = true }
 }
 
-const getBotMessageDefault = async (container, browser, elementId) => {
-  debug(`getBotMessageDefault receiving text for element ${elementId}`)
+const getBotMessageDefault = async (container, browser, element) => {
+  debug(`getBotMessageDefault receiving text for element ${element.ELEMENT}`)
 
-  const botMsg = { sender: 'bot', sourceData: { elementId } }
+  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT } }
 
   const isNested = (capName, def) => {
     if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
     return !!container.caps[capName]
   }
 
-  let textElementId = elementId
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
-    const textElement = isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)
-      ? await browser.elementIdElement(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
-      : await browser.element(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
-    textElementId = textElement.value.ELEMENT
-  }
-  const textElementValue = await browser.elementIdText(textElementId)
-  botMsg.messageText = textElementValue.value
-
-  const buttonElementIds = isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)
-    ? await browser.elementIdElements(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
-    : await browser.elements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
-  for (let bi = 0; bi < buttonElementIds.value.length; bi++) {
-    const buttonElementValue = await browser.elementIdText(buttonElementIds.value[bi].ELEMENT)
-
-    if (buttonElementValue && buttonElementValue.value) {
-      const button = {
-        text: buttonElementValue.value
+    if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
+      const textElement = element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      if (textElement) {
+        botMsg.messageText = await textElement.getText()
       }
-      const buttonHrefValue = await browser.elementIdAttribute(buttonElementIds.value[bi].ELEMENT, 'href')
-      if (buttonHrefValue && buttonHrefValue.value) {
-        button.payload = buttonHrefValue.value
+    } else {
+      const textElement = await browser.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      if (textElement) {
+        botMsg.messageText = await textElement.getText()
+      }
+    }
+  } else {
+    botMsg.messageText = await element.getText()
+  }
+
+  let buttonElements
+  if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
+    buttonElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+  } else {
+    buttonElements = await browser.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+  }
+  for (const buttonElement of (buttonElements || [])) {
+    const buttonElementText = await buttonElement.getText()
+    if (buttonElementText) {
+      const button = {
+        text: buttonElementText
+      }
+      const buttonHrefValue = await buttonElement.getAttribute('href')
+      if (buttonHrefValue) {
+        button.payload = buttonHrefValue
       }
 
       botMsg.buttons = botMsg.buttons || []
@@ -196,18 +210,21 @@ const getBotMessageDefault = async (container, browser, elementId) => {
     }
   }
 
-  const mediaElementIds = isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)
-    ? await browser.elementIdElements(elementId, container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
-    : await browser.elements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
-  for (let mi = 0; mi < mediaElementIds.value.length; mi++) {
-    const mediaSrcValue = await browser.elementIdAttribute(mediaElementIds.value[mi].ELEMENT, 'src')
-    if (mediaSrcValue && mediaSrcValue.value) {
-      const mediaAltValue = await browser.elementIdAttribute(mediaElementIds.value[mi].ELEMENT, 'alt')
+  let mediaElements
+  if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
+    mediaElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+  } else {
+    mediaElements = await browser.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+  }
+  for (const mediaElement of (mediaElements || [])) {
+    const mediaSrcValue = await mediaElement.getAttribute('src')
+    if (mediaSrcValue) {
+      const mediaAltValue = await mediaElement.getAttribute('alt')
       botMsg.media = botMsg.media || []
       botMsg.media.push({
-        mediaUri: mediaSrcValue.value,
-        mimeType: mime.lookup(mediaSrcValue.value) || 'application/unknown',
-        altText: mediaAltValue && mediaAltValue.value
+        mediaUri: mediaSrcValue,
+        mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
+        altText: mediaAltValue
       })
     }
   }
@@ -305,14 +322,17 @@ class BotiumConnectorWebdriverIO {
       await this._stopBrowser()
 
       const options = this.caps[Capabilities.WEBDRIVERIO_OPTIONS] || {}
-      if (!options.desiredCapabilities && this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
-        options.desiredCapabilities = {
+      if (!options.logLevel) {
+        options.logLevel = debug.enabled ? 'info' : 'silent'
+      }
+
+      if (!options.capabilities && this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
+        options.capabilities = {
           browserName: 'phantomjs'
         }
       }
-      this.browser = webdriverio.remote(options)
+      this.browser = await webdriverio.remote(options)
 
-      await this.browser.init()
       await this.openBrowser(this, this.browser)
       await this.openBot(this, this.browser)
 
@@ -329,9 +349,9 @@ class BotiumConnectorWebdriverIO {
       if (this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE]) {
         await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE])
       }
-      const session = await this.browser.session()
+
       return {
-        browserSessionId: session.sessionId
+        browserSessionId: this.browser.sessionId
       }
     } catch (err) {
       debug(`WebDriver error on startup: ${util.inspect(err)}`)
@@ -356,7 +376,7 @@ class BotiumConnectorWebdriverIO {
     debug(`BotSays called ${util.inspect(msg)}`)
 
     if (this.ignoreBotMessages) {
-      debug(`BotSays ignoring upfront message`)
+      debug('BotSays ignoring upfront message')
     } else if (this.ignoreWelcomeMessageCounter > 0) {
       this.ignoreWelcomeMessageCounter--
       debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessageCounter} remaining ${util.inspect(msg)}`)
@@ -395,26 +415,25 @@ class BotiumConnectorWebdriverIO {
       this.phantomJSProcess = null
     }
     if (this.seleniumChild) {
-      debug(`Killing selenium process`)
+      debug('Killing selenium process')
       this.seleniumChild.kill('SIGKILL')
       this.seleniumChild = null
     }
   }
 
-  _stopBrowser () {
+  async _stopBrowser () {
     if (this.cancelReceive) {
       this.cancelReceive()
     }
     if (this.browser) {
-      return this.browser.end()
-        .then(() => this.browser.pause(2000))
-        .then(() => { this.browser = null })
-        .catch((err) => {
-          debug(`WARNING: browser.end failed - ${util.inspect(err)}`)
-          this.browser = null
-        })
+      try {
+        await this.browser.deleteSession()
+        await this.browser.pause(2000) // workaround to shut down chrome driver https://github.com/webdriverio-boneyard/wdio-selenium-standalone-service/issues/28
+      } catch (err) {
+        debug(`WARNING: browser.deleteSession failed - ${util.inspect(err)}`)
+      }
+      this.browser = null
     }
-    return Promise.resolve()
   }
 
   _loadFunction (capName, defaultFunction) {
@@ -474,15 +493,9 @@ class BotiumConnectorWebdriverIO {
 
   async _takeScreenshot (section) {
     try {
-      const buffer = await this.browser.saveScreenshot()
-      debug(`Screenshot taken, size ${buffer.length}`)
-      if (debug.enabled) {
-        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-        fs.writeFile(filename, buffer, (fsErr) => {
-          if (fsErr) debug('Error saving screenshot', fsErr)
-          else debug('Saved debugging screenshot', filename)
-        })
-      }
+      const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+      const buffer = await this.browser.saveScreenshot(filename)
+      debug(`Screenshot taken, size ${buffer.length}, saved to ${filename}`)
       return {
         base64: buffer.toString('base64'),
         mimeType: 'image/png'
@@ -496,12 +509,9 @@ class BotiumConnectorWebdriverIO {
 
   async _saveDebugScreenshot (section) {
     try {
-      const buffer = await this.browser.saveScreenshot()
       const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-      fs.writeFile(filename, buffer, (fsErr) => {
-        if (fsErr) debug('Error saving screenshot', fsErr)
-        else debug('Saved debugging screenshot', filename)
-      })
+      await this.browser.saveScreenshot(filename)
+      debug(`Saved debugging screenshot to ${filename}`)
     } catch (err) {
       debug(`Failed to take debug screenshot: ${util.inspect(err)}`)
     }

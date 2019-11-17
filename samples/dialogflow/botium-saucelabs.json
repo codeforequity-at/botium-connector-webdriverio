@@ -5,7 +5,7 @@
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_URL": "https://console.dialogflow.com/api-client/demo/embedded/d388ac41-5c60-483f-b89b-0ec0d99d848d",
       "WEBDRIVERIO_OPTIONS": {
-        "desiredCapabilities": {
+        "capabilities": {
           "deviceName": "Samsung Galaxy S6 GoogleAPI Emulator",
           "platformName": "Android",
           "platformVersion": "7.0",

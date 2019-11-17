@@ -6,7 +6,7 @@
       "WEBDRIVERIO_URL": "https://assistant-chat-eu-de.watsonplatform.net/web/public/xxxxxxx",
       "WEBDRIVERIO_PROFILE": "watsonpreview",
       "WEBDRIVERIO_OPTIONS": {	
-				"desiredCapabilities": {
+				"capabilities": {
 					"browserName": "chrome"
 				}
 			},

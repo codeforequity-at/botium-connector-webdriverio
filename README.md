@@ -247,7 +247,7 @@ This example selects Chrome browser:
     "Capabilities": {
       ...
       "WEBDRIVERIO_OPTIONS": {	
-        "desiredCapabilities": {
+        "capabilities": {
           "browserName": "chrome"      
         }
       }
@@ -265,7 +265,7 @@ This example selects the cloud device provider Saucelabs:
     "Capabilities": {
       ...
       "WEBDRIVERIO_OPTIONS": {
-        "desiredCapabilities": {
+        "capabilities": {
           "deviceName": "Samsung Galaxy S6 GoogleAPI Emulator",
           "platformName": "Android",
           "platformVersion": "7.0",

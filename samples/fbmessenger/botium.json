@@ -4,14 +4,9 @@
       "PROJECTNAME": "fbmessenger",
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {
-        "desiredCapabilities": {
+        "capabilities": {
           "browserName": "chrome",
-          "__browserName": "edge",
-          "__browserName": "firefox",
-          "moz:firefoxOptions": {
-            "binary": "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe"
-          },
-          "chromeOptions": {
+          "goog:chromeOptions": {
             "args": [ "--headless", "--disable-gpu" ]
           }
         }

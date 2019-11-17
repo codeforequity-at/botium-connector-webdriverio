@@ -1,11 +1,17 @@
-module.exports = (container, browser) => {
-  return browser
-    .waitForVisible('.cc-btn', 20000).then(() => console.log('cc-btn visible'))
-    .click('.cc-btn')
-    .pause(2000)
-    .waitForVisible('#StartChat', 20000).then(() => console.log('troy button visible'))
-    .click('#StartChat')
-    .waitForVisible('#chat', 10000).then(() => console.log('troy window visible'))
-    .waitForVisible('#textInput', 10000).then(() => console.log('troy textInput visible'))
-    .waitForVisible('.from-watson', 10000).then(() => console.log('troy welcome visible'))
+module.exports = async (container, browser) => {
+  const ccBtn = await browser.$('.cc-btn')
+  await ccBtn.waitForDisplayed(20000)
+  await ccBtn.click()
+  console.log('cc-btn clicked')
+  await browser.pause(2000)
+  const startChat = await browser.$('#StartChat')
+  await startChat.waitForDisplayed(20000)
+  await startChat.click()
+  console.log('troy button visible and clicked')
+  await (await browser.$('#chat')).waitForDisplayed(10000)
+  console.log('troy window visible')
+  await (await browser.$('#textInput')).waitForDisplayed(10000)
+  console.log('troy textInput visible')
+  await (await browser.$('.from-watson')).waitForDisplayed(10000)
+  console.log('troy welcome visible')
 }
