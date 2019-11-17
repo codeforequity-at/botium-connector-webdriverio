@@ -10,14 +10,12 @@ const selenium = require('selenium-standalone')
 const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
 
-const messengerComProfile = require('./profiles/messenger_com')
 const dialogflowComProfile = require('./profiles/dialogflow_com')
 const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
 const watsonpreviewProfile = require('./profiles/watsonpreview')
 
 const profiles = {
-  messenger_com: messengerComProfile,
   dialogflow_com: dialogflowComProfile,
   botbuilder_webchat_v3: botbuilderWebchatV3Profile,
   botbuilder_webchat_v4: botbuilderWebchatV4Profile,
@@ -531,7 +529,6 @@ module.exports = {
   PluginVersion: 1,
   PluginClass: BotiumConnectorWebdriverIO,
   Profiles: {
-    messenger_com: 'Facebook Messenger (experimental)',
     dialogflow_com: 'Google Dialogflow Web Demo',
     botbuilder_webchat_v3: 'MS BotBuilder Webchat (v3)',
     botbuilder_webchat_v4: 'MS BotBuilder Webchat (v4)',
