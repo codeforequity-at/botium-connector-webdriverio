@@ -14,6 +14,9 @@ This is technical documentation on a rather low level. As introduction to E2E-Te
 * [Botium in a Nutshell, Part 6: E2E-Testing with Botium Box](https://medium.com/@floriantreml/botium-in-a-nutshell-part-6-e2e-testing-with-botium-box-9bd8acdf5a70)
 * [Run Selenium Grid and Connect to Botium Box](https://botium.atlassian.net/wiki/spaces/BOTIUM/pages/32145510/Run+Selenium+Grid+and+Connect+to+Botium+Box)
 
+## Attention: Breaking Change with Version 0.2.0
+<font color='red'>With Version 0.2.0 of this connector we switched [from Webdriver 4 to Webdriver 5](https://webdriver.io/blog/2018/12/19/webdriverio-v5-released.html). To continue using Webdriver 4 with your Selenium scripts, use the NPM package **botium-connector-webdriverio4** instead of **botium-connector-webdriverio**.</font>
+
 ## How it works ?
 Botium uses the [Webdriver.io](https://webdriver.io/) library to run conversations against a chatbot running on a website.
 
@@ -305,6 +308,17 @@ The [Webdriver.io](https://webdriver.io/docs/options.html)-Options (see above)
 ### WEBDRIVERIO_URL
 The url to open in the browser
 
+### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
+HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).
+
+Sample configuration:
+
+    ...
+    "WEBDRIVERIO_HTTP_PROXY": "my-corporate-proxy-host:some-port",
+    "WEBDRIVERIO_HTTPS_PROXY": "my-corporate-proxy-host:some-port",
+    "WEBDRIVERIO_NO_PROXY": "*.internal.addresses",
+    ...
+
 ### WEBDRIVERIO_VIEWPORT_SIZE
 Set browser view port size to dimensions
 Example:
@@ -339,6 +353,9 @@ Extension function to gather chatbot response (see above)
 
 ### WEBDRIVERIO_GETBOTMESSAGE
 Extension function to extract the message from the chatbot response element (see above)
+
+### WEBDRIVERIO_SHADOW_ROOT
+The root element selector for chatbots hosted within a [Shadow DOM](https://wiki.selfhtml.org/wiki/HTML/Web_Components/Shadow_DOM)
 
 ### WEBDRIVERIO_INPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the input text field

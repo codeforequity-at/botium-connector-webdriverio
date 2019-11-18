@@ -33,6 +33,9 @@ const Capabilities = {
   WEBDRIVERIO_SENDTOBOT: 'WEBDRIVERIO_SENDTOBOT',
   WEBDRIVERIO_RECEIVEFROMBOT: 'WEBDRIVERIO_RECEIVEFROMBOT',
   WEBDRIVERIO_GETBOTMESSAGE: 'WEBDRIVERIO_GETBOTMESSAGE',
+  WEBDRIVERIO_HTTP_PROXY: 'WEBDRIVERIO_HTTP_PROXY',
+  WEBDRIVERIO_HTTPS_PROXY: 'WEBDRIVERIO_HTTPS_PROXY',
+  WEBDRIVERIO_NO_PROXY: 'WEBDRIVERIO_NO_PROXY',
   WEBDRIVERIO_SHADOW_ROOT: 'WEBDRIVERIO_SHADOW_ROOT',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
@@ -337,6 +340,23 @@ class BotiumConnectorWebdriverIO {
           browserName: 'phantomjs'
         }
       }
+
+      if (this.caps[Capabilities.WEBDRIVERIO_HTTP_PROXY] || this.caps[Capabilities.WEBDRIVERIO_HTTPS_PROXY]) {
+        const proxy = {
+          proxyType: 'manual'
+        }
+        if (this.caps[Capabilities.WEBDRIVERIO_HTTP_PROXY]) {
+          proxy.httpProxy = this.caps[Capabilities.WEBDRIVERIO_HTTP_PROXY]
+        }
+        if (this.caps[Capabilities.WEBDRIVERIO_HTTPS_PROXY]) {
+          proxy.sslProxy = this.caps[Capabilities.WEBDRIVERIO_HTTPS_PROXY]
+        }
+        if (this.caps[Capabilities.WEBDRIVERIO_NO_PROXY]) {
+          proxy.noProxy = this.caps[Capabilities.WEBDRIVERIO_NO_PROXY]
+        }
+        options.capabilities.proxy = proxy
+      }
+      debug(`Webdriver Options: ${JSON.stringify(options)}`)
       this.browser = await webdriverio.remote(options)
 
       await this.openBrowser(this, this.browser)
