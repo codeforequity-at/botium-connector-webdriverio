@@ -4,15 +4,15 @@
       "PROJECTNAME": "WebdriverIO Plugin Sample",
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {	
-				"desiredCapabilities": {
+				"capabilities": {
 					"browserName": "chrome"
 				}
 			},
       "WEBDRIVERIO_URL": "https://www.drei.at",
       "WEBDRIVERIO_OPENBOT": "./snippets/openbot",
       "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",
-      "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": ".btn-weiter",
-			"WEBDRIVERIO_OUTPUT_ELEMENT": ".troy__send",
+      "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": ".troy__send",
+			"WEBDRIVERIO_OUTPUT_ELEMENT": ".from-watson",
       "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
       "WEBDRIVERIO_START_SELENIUM": true
     }

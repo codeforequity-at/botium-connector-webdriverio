@@ -1,0 +1,17 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "WEBDRIVERIO_URL": "https://assistant-chat-eu-de.watsonplatform.net/web/public/xxxxxxx",
+      "WEBDRIVERIO_PROFILE": "watsonpreview",
+      "WEBDRIVERIO_OPTIONS": {	
+				"capabilities": {
+					"browserName": "chrome"
+				}
+			},
+      "WEBDRIVERIO_START_SELENIUM": true,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
+    }
+  }
+}

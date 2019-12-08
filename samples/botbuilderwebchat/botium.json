@@ -4,23 +4,16 @@
       "PROJECTNAME": "WebdriverIO Plugin Sample",
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_URL": "https://microsoft.github.io/BotFramework-WebChat/01.a.getting-started-full-bundle/",
+      "WEBDRIVERIO_OPENBOTPAUSE": 4000,
       "WEBDRIVERIO_OPTIONS": {
-        "desiredCapabilities": {
+        "capabilities": {
           "browserName": "chrome",
-          "chromeOptions": {
-            "args": [ "--headless" ]
-          }          
+          "goog:chromeOptions": {
+          }
         }
       },
       "WEBDRIVERIO_PROFILE": "botbuilder_webchat_v4",
-      "WEBDRIVERIO_START_SELENIUM": true,
-      "WEBDRIVERIO_START_SELENIUM_OPTS": {
-        "drivers": {
-          "chrome": {
-            "version": "2.36"
-          }
-        }
-      }
+      "WEBDRIVERIO_START_SELENIUM": true
     }
   }
 }

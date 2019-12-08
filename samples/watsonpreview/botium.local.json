@@ -1,0 +1,8 @@
+{
+  "botium": {
+    "Capabilities": {
+      "CLEANUPTEMPDIR": false,
+      "WEBDRIVERIO_URL": "https://assistant-chat-eu-de.watsonplatform.net/web/public/de05e827-8567-4493-bb4d-2d7bbe3fd4ea"
+    }
+  }
+}

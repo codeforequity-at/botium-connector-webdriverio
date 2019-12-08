@@ -11,5 +11,5 @@ BUTTONS Passwort vergessen|Tarif wechseln
 Ich möchte kündigen
 
 #bot
-Ich bedauere es sehr
+Möchten Sie ein Mobilfunk- oder ein Festnetz-Produkt kündigen?
 BUTTONS Mobilfunk-Produkt|Festnetz-Produkt

@@ -4,7 +4,7 @@
       "PROJECTNAME": "WebdriverIO Plugin Sample",
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_OPTIONS": {	
-				"desiredCapabilities": {
+				"capabilities": {
           "deviceName": "iPhone 6",
           "platformName": "IOS",
           "platformVersion": "10.3.3",
