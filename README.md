@@ -407,6 +407,16 @@ _Default: .//img | .//video | .//audio_
 
 If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED to _true_ (default).
 
+### WEBDRIVERIO_OUTPUT_ELEMENT_HASH
+_Default: ELEMENTID_
+
+The algorithm used to calculate a unique identifier for an identified output element. By default, the Webdriver element identifier is chosen, but depending on the level of dynamic content, it might be a better approach to calculate a hash for the output HTML content.
+
+Possible values:
+
+* ELEMENTID
+* HASH
+
 ### WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML
 _Default: false_
 

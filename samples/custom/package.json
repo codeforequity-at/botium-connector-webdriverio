@@ -2,7 +2,7 @@
   "name": "custom",
   "version": "1.0.0",
   "scripts": {
-    "test": "BOTIUM_CONFIG=botium.json mocha spec"
+    "test": "mocha spec"
   },
   "devDependencies": {
     "botium-bindings": "latest",

@@ -5,7 +5,6 @@ Hallo
 
 #bot
 Hallo und willkommen
-BUTTONS Passwort vergessen|Tarif wechseln
 
 #me
 BUTTON Tarif wechseln

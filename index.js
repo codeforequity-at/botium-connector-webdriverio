@@ -57,6 +57,7 @@ const Capabilities = {
   WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
   WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE',
+  WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
   WEBDRIVERIO_START_SELENIUM_OPTS: 'WEBDRIVERIO_START_SELENIUM_OPTS',
   WEBDRIVERIO_START_PHANTOMJS: 'WEBDRIVERIO_START_PHANTOMJS',
@@ -90,7 +91,7 @@ const sendToBotDefault = async (container, browser, msg) => {
 
   if (msg.buttons && msg.buttons.length > 0) {
     const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')][last()] | //a[contains(text(),\'{{button.text}}\')][last()]'
-    const qrSelector = Mustache.render(qrSelectorTemplate, { button: msg.buttons[0] })
+    const qrSelector = Mustache.render(qrSelectorTemplate, { button: { text: msg.buttons[0].text || msg.buttons[0].payload, payload: msg.buttons[0].payload || msg.buttons[0].text } })
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
     const qrElement = await container.findElement(qrSelector)
@@ -141,10 +142,10 @@ const receiveFromBotDefault = (container, browser) => {
         for (const element of r) {
           const html = await browser.execute('return arguments[0].outerHTML;', element)
           let hashKey
-          if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'ELEMENTID') {
-            hashKey = element.ELEMENT
-          } else {
+          if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
             hashKey = crypto.createHash('md5').update(html).digest('hex')
+          } else {
+            hashKey = `${element.ELEMENT}`
           }
 
           if (handledElements.indexOf(hashKey) < 0) {
@@ -154,8 +155,8 @@ const receiveFromBotDefault = (container, browser) => {
               if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
                 debug(html)
               }
-              await container.getBotMessage(container, browser, element)
               handledElements.push(hashKey)
+              await container.getBotMessage(container, browser, element)
             } catch (err) {
               debug(`Failed in getBotMessage, skipping: ${err}`)
             }
@@ -332,7 +333,7 @@ class BotiumConnectorWebdriverIO {
 
       const options = this.caps[Capabilities.WEBDRIVERIO_OPTIONS] || {}
       if (!options.logLevel) {
-        options.logLevel = debug.enabled ? 'info' : 'silent'
+        options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }
 
       if (!options.capabilities && this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
