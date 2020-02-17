@@ -410,10 +410,10 @@ If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WE
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH
 _Default: ELEMENTID_
 
-The algorithm used to calculate a unique identifier for an identified output element. By default, the Webdriver element identifier is chosen, but depending on the level of dynamic content, it might be a better approach to use the output HTML content itself as (very long) identifier. This is recommended in those cases:
+The algorithm used to calculate a unique identifier for an identified output element. By default, the Webdriver element identifier is chosen, and this works in most cases. But depending on the level of dynamic content, it might be a better approach to use the output HTML content itself as (very long) identifier. This is recommended in those cases:
 
 * On iOs the Webdriver element identifier is not unique, so you have to rely on HTML content to be unique
-* If you have a unique identifier in the HTML content (a unique generated)
+* If you have a unique identifier in the HTML content (in combination with _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR_)
 
 Possible values:
 
@@ -423,9 +423,18 @@ Possible values:
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR
 _Default: empty_
 
-If _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ is **HASH**, then it is possible to specify a selector for the 
+If _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ is **HASH**, then it is possible to specify a selector for the unique HTML content. 
 
+For instance, HTML for a bot message could look like this:
 
+```
+<div class="bot-message"><div class="text" id="1683949299888">Hey, meat bag!</div></div>
+
+```
+
+* **WEBDRIVERIO_OUTPUT_ELEMENT** - //div[contains(@class,'bot-message')]
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH** - HASH
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR** - ./div[contains(@class,'text')]
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML
 _Default: false_

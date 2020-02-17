@@ -18,6 +18,7 @@
       "WEBDRIVERIO_OPENBOT": "./snippets/openbot",
       "WEBDRIVERIO_INPUT_ELEMENT": "//input[@id='textInput']",
       "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": "//button[contains(@class,'troy__send')]",
+      "WEBDRIVERIO_OUTPUT_ELEMENT": "//div[contains(@class,'from-watson')]",
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "HASH",
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR": "./div[contains(@class,'message-inner')]/div[contains(@class,'text')]",
       "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,

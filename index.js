@@ -180,9 +180,9 @@ const receiveFromBotDefault = (container, browser) => {
 }
 
 const getBotMessageDefault = async (container, browser, element) => {
-  debug(`getBotMessageDefault receiving text for element ${element.ELEMENT|| element.elementId}`)
+  debug(`getBotMessageDefault receiving text for element ${element.ELEMENT || element.elementId}`)
 
-  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId} }
+  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId } }
 
   const isNested = (capName, def) => {
     if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
@@ -367,7 +367,7 @@ class BotiumConnectorWebdriverIO {
       }
       debug(`Webdriver Options: ${JSON.stringify(options)}`)
       this.browser = await webdriverio.remote(options)
-      if (this.stopped) throw new Error(`Connector already stopped.`) // Sometimes it takes too long for starting browser
+      if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
       await this.openBrowser(this, this.browser)
 
