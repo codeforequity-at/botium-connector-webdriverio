@@ -410,12 +410,22 @@ If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WE
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH
 _Default: ELEMENTID_
 
-The algorithm used to calculate a unique identifier for an identified output element. By default, the Webdriver element identifier is chosen, but depending on the level of dynamic content, it might be a better approach to calculate a hash for the output HTML content.
+The algorithm used to calculate a unique identifier for an identified output element. By default, the Webdriver element identifier is chosen, but depending on the level of dynamic content, it might be a better approach to use the output HTML content itself as (very long) identifier. This is recommended in those cases:
+
+* On iOs the Webdriver element identifier is not unique, so you have to rely on HTML content to be unique
+* If you have a unique identifier in the HTML content (a unique generated)
 
 Possible values:
 
-* ELEMENTID
-* HASH
+* ELEMENTID - use the Webdriver element identifier
+* HASH - use the HTML output as identifier
+
+### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR
+_Default: empty_
+
+If _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ is **HASH**, then it is possible to specify a selector for the 
+
+
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML
 _Default: false_

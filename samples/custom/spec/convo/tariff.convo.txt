@@ -11,4 +11,4 @@ BUTTON Tarif wechseln
 
 #bot
 Ich verstehe, dass Sie Ihren Tarif wechseln möchten
-BUTTONS Telefonie-Tari|Internet-Tarif
+BUTTONS Telefonie-Tarif|Internet-Tarif

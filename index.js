@@ -50,6 +50,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH',
+  WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_IGNOREEMPTYMESSAGES: 'WEBDRIVERIO_IGNOREEMPTYMESSAGES',
@@ -101,7 +102,7 @@ const sendToBotDefault = async (container, browser, msg) => {
   } else {
     const inputElement = await container.findElement(inputElementSelector)
     await inputElement.waitForEnabled(inputElementVisibleTimeout)
-    debug(`input element ${inputElementSelector} is visible, simulating input`)
+    debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}"`)
     if (inputElementSendButtonSelector) {
       await inputElement.setValue(msg.messageText)
       const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
@@ -143,13 +144,19 @@ const receiveFromBotDefault = (container, browser) => {
           const html = await browser.execute('return arguments[0].outerHTML;', element)
           let hashKey
           if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
-            hashKey = crypto.createHash('md5').update(html).digest('hex')
+            if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
+              const hashElement = await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
+              const hashHtml = await browser.execute('return arguments[0].outerHTML;', hashElement)
+              hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
+            } else {
+              hashKey = crypto.createHash('md5').update(html).digest('hex')
+            }
           } else {
-            hashKey = `${element.ELEMENT}`
+            hashKey = `${element.ELEMENT || element.elementId}`
           }
 
           if (handledElements.indexOf(hashKey) < 0) {
-            debug(`Found new bot response element ${outputElement}, id ${element.ELEMENT}`)
+            debug(`Found new bot response element ${outputElement}, id ${element.ELEMENT || element.elementId}, hashKey ${hashKey}`)
 
             try {
               if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
@@ -173,9 +180,9 @@ const receiveFromBotDefault = (container, browser) => {
 }
 
 const getBotMessageDefault = async (container, browser, element) => {
-  debug(`getBotMessageDefault receiving text for element ${element.ELEMENT}`)
+  debug(`getBotMessageDefault receiving text for element ${element.ELEMENT|| element.elementId}`)
 
-  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT } }
+  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId} }
 
   const isNested = (capName, def) => {
     if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
@@ -184,7 +191,7 @@ const getBotMessageDefault = async (container, browser, element) => {
 
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
     if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
-      const textElement = element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      const textElement = await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
       if (textElement) {
         botMsg.messageText = await textElement.getText()
       }
@@ -320,6 +327,7 @@ class BotiumConnectorWebdriverIO {
 
   async Start () {
     debug('Start called')
+    this.stopped = false
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
       this.ignoreWelcomeMessageCounter = this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]
@@ -359,6 +367,7 @@ class BotiumConnectorWebdriverIO {
       }
       debug(`Webdriver Options: ${JSON.stringify(options)}`)
       this.browser = await webdriverio.remote(options)
+      if (this.stopped) throw new Error(`Connector already stopped.`) // Sometimes it takes too long for starting browser
 
       await this.openBrowser(this, this.browser)
 
@@ -444,6 +453,7 @@ class BotiumConnectorWebdriverIO {
       this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
     }
     await this._stopBrowser()
+    this.stopped = true
   }
 
   async Clean () {

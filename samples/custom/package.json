@@ -2,7 +2,8 @@
   "name": "custom",
   "version": "1.0.0",
   "scripts": {
-    "test": "cross-env BOTIUM_CONFIG=botium.json mocha spec"
+    "test": "cross-env BOTIUM_CONFIG=botium.json mocha spec",
+    "test-appium": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec"
   },
   "devDependencies": {
     "botium-bindings": "latest",
