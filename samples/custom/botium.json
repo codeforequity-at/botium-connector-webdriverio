@@ -13,6 +13,7 @@
       "WEBDRIVERIO_INPUT_ELEMENT": "//input[@id='textInput']",
       "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": "//button[contains(@class,'troy__send')]",
       "WEBDRIVERIO_OUTPUT_ELEMENT": "//div[contains(@class,'from-watson')]",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "ELEMENTID",
       "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
       "WEBDRIVERIO_START_SELENIUM": true
     }
