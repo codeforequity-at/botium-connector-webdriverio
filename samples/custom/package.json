@@ -2,11 +2,13 @@
   "name": "custom",
   "version": "1.0.0",
   "scripts": {
-    "test": "BOTIUM_CONFIG=botium.json mocha spec"
+    "test": "cross-env BOTIUM_CONFIG=botium.json mocha spec",
+    "test-appium": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec"
   },
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
+    "cross-env": "^7.0.0",
     "mocha": "latest"
   },
   "botium": {
