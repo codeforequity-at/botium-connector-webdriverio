@@ -71,6 +71,10 @@ const openBrowserDefault = async (container, browser) => {
   await browser.url(url)
   const title = await browser.getTitle()
   debug(`URL ${url} opened, page title: ${title}`)
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
+    const html = await browser.execute('return document.documentElement.outerHTML;')
+    debug(html)
+  }
   if (container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
     await browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
   }
@@ -305,6 +309,13 @@ class BotiumConnectorWebdriverIO {
       const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
       debug(`Starting phantomJS with args: ${phantomJsArgs}`)
       this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
+      this.phantomJSProcess.stdout.pipe(process.stdout)
+      this.phantomJSProcess.stderr.pipe(process.stderr)
+      this.phantomJSProcess.on('exit', code => {
+        console.log('phantomjs exit ' + code)
+      })
+
+
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
@@ -436,10 +447,11 @@ class BotiumConnectorWebdriverIO {
     } else {
       if (this.browser && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays') {
         const screenshot = await this._takeScreenshot('onbotsays')
-
-        msg.attachments = msg.attachments || []
-        msg.attachments.push(screenshot)
-        if (debug.enabled) await this._saveDebugScreenshot('usersays')
+        if (screenshot) {
+          msg.attachments = msg.attachments || []
+          msg.attachments.push(screenshot)
+          if (debug.enabled) await this._saveDebugScreenshot('usersays')
+        }
       }
       this.queueBotSays(msg)
     }
@@ -450,7 +462,9 @@ class BotiumConnectorWebdriverIO {
 
     if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
       const screenshot = await this._takeScreenshot('onstop')
-      this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+      if (screenshot) {
+        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+      }
     }
     await this._stopBrowser()
     this.stopped = true
@@ -542,18 +556,20 @@ class BotiumConnectorWebdriverIO {
   }
 
   async _takeScreenshot (section) {
-    try {
-      const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-      const buffer = await this.browser.saveScreenshot(filename)
-      debug(`Screenshot taken, size ${buffer.length}, saved to ${filename}`)
-      return {
-        base64: buffer.toString('base64'),
-        mimeType: 'image/png'
+    if (this.browser) {
+      try {
+        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        const buffer = await this.browser.saveScreenshot(filename)
+        debug(`Screenshot taken, size ${buffer.length}, saved to ${filename}`)
+        return {
+          base64: buffer.toString('base64'),
+          mimeType: 'image/png'
+        }
+      } catch (err) {
+        const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
+        debug(errMsg)
+        throw new Error(errMsg)
       }
-    } catch (err) {
-      const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
-      debug(errMsg)
-      throw new Error(errMsg)
     }
   }
 
