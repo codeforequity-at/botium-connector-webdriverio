@@ -309,13 +309,13 @@ class BotiumConnectorWebdriverIO {
       const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
       debug(`Starting phantomJS with args: ${phantomJsArgs}`)
       this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
-      this.phantomJSProcess.stdout.pipe(process.stdout)
-      this.phantomJSProcess.stderr.pipe(process.stderr)
+      if (debug.enabled) {
+        this.phantomJSProcess.stdout.pipe(process.stdout)
+        this.phantomJSProcess.stderr.pipe(process.stderr)
+      }
       this.phantomJSProcess.on('exit', code => {
-        console.log('phantomjs exit ' + code)
+        debug(`phantomJS exited with code: ${code}`)
       })
-
-
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
