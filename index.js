@@ -414,9 +414,10 @@ class BotiumConnectorWebdriverIO {
         browserSessionId: this.browser.sessionId
       }
     } catch (err) {
-      debug(`WebDriver error on startup: ${util.inspect(err)}`)
+      debug(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
+      throw new Error(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
+    } finally {
       if (debug.enabled) await this._saveDebugScreenshot('onstart')
-      throw new Error(`WebDriver error on startup: ${util.inspect(err)}`)
     }
   }
 
@@ -426,9 +427,10 @@ class BotiumConnectorWebdriverIO {
       await this.sendToBot(this, this.browser, msg)
       this.ignoreBotMessages = false
     } catch (err) {
-      debug(`WebDriver error on UserSays: ${util.inspect(err)}`)
+      debug(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
+      throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
+    } finally {
       if (debug.enabled) this._saveDebugScreenshot('usersays')
-      throw new Error(`WebDriver error on UserSays: ${util.inspect(err)}`)
     }
   }
 
@@ -450,9 +452,9 @@ class BotiumConnectorWebdriverIO {
         if (screenshot) {
           msg.attachments = msg.attachments || []
           msg.attachments.push(screenshot)
-          if (debug.enabled) await this._saveDebugScreenshot('usersays')
         }
       }
+      if (debug.enabled) await this._saveDebugScreenshot('onbotsays')
       this.queueBotSays(msg)
     }
   }
@@ -494,7 +496,7 @@ class BotiumConnectorWebdriverIO {
         await this.browser.deleteSession()
         await this.browser.pause(2000) // workaround to shut down chrome driver https://github.com/webdriverio-boneyard/wdio-selenium-standalone-service/issues/28
       } catch (err) {
-        debug(`WARNING: browser.deleteSession failed - ${util.inspect(err)}`)
+        debug(`WARNING: browser.deleteSession failed - ${err.message || util.inspect(err)}`)
       }
       this.browser = null
     }
@@ -514,7 +516,7 @@ class BotiumConnectorWebdriverIO {
           return c
         } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
       }
 
       const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
@@ -525,7 +527,7 @@ class BotiumConnectorWebdriverIO {
           return c
         } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
       }
 
       try {
@@ -545,7 +547,7 @@ class BotiumConnectorWebdriverIO {
           return sandbox.result || Promise.resolve()
         }
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
       }
 
       loadErr.forEach(d => debug(d))
@@ -566,7 +568,7 @@ class BotiumConnectorWebdriverIO {
           mimeType: 'image/png'
         }
       } catch (err) {
-        const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
+        const errMsg = `Failed to take screenshot: ${err.message || util.inspect(err)}`
         debug(errMsg)
         throw new Error(errMsg)
       }
@@ -574,12 +576,16 @@ class BotiumConnectorWebdriverIO {
   }
 
   async _saveDebugScreenshot (section) {
-    try {
-      const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-      await this.browser.saveScreenshot(filename)
-      debug(`Saved debugging screenshot to ${filename}`)
-    } catch (err) {
-      debug(`Failed to take debug screenshot: ${util.inspect(err)}`)
+    if (this.browser) {
+      try {
+        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        await this.browser.saveScreenshot(filename)
+        debug(`Saved debugging screenshot to ${filename}`)
+      } catch (err) {
+        debug(`Failed to take debug screenshot: ${err.message || util.inspect(err)}`)
+      }
+    } else {
+      debug('Failed to take debug screenshot - browser already closed')
     }
   }
 
