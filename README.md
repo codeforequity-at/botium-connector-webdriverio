@@ -278,7 +278,7 @@ This example selects the cloud device provider Saucelabs:
           "username": "xxx",
           "accessKey": "xxxxx"
         },
-        "host": "ondemand.saucelabs.com",
+        "hostname": "ondemand.saucelabs.com",
         "port": 80
       },
       ...
