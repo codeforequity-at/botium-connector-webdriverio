@@ -10,7 +10,9 @@
 					"browserName": "chrome"
 				}
 			},
-      "WEBDRIVERIO_START_SELENIUM": true,
+      "WEBDRIVERIO_SCREENSHOTS": "onbotsays",
+      "WEBDRIVERIO_START_SELENIUM": false,
+      "WEBDRIVERIO_START_PHANTOMJS": true,
       "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
     }
   }

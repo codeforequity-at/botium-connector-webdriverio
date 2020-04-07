@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.7.2",
+    "better-queue": "^3.8.10",
     "debug": "^4.1.1",
     "esprima": "^4.0.1",
     "lodash": "^4.17.15",
