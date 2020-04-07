@@ -134,7 +134,7 @@ const receiveFromBotDefault = async (container, browser) => {
   return r
 }
 
-const urlRegexp = /(http|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?/
+const urlRegexp = /(http|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:/~+#-]*[\w@?^=%&amp;/~+#-])?/
 const getBotMessageDefault = async (container, browser, element, html) => {
   debug(`getBotMessageDefault receiving text for element ${element.ELEMENT || element.elementId}`)
 
