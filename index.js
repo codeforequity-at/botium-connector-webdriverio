@@ -134,6 +134,7 @@ const receiveFromBotDefault = async (container, browser) => {
   return r
 }
 
+const urlRegexp = /(http|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?/
 const getBotMessageDefault = async (container, browser, element, html) => {
   debug(`getBotMessageDefault receiving text for element ${element.ELEMENT || element.elementId}`)
 
@@ -175,6 +176,14 @@ const getBotMessageDefault = async (container, browser, element, html) => {
       const buttonHrefValue = await buttonElement.getAttribute('href')
       if (buttonHrefValue) {
         button.payload = buttonHrefValue
+      } else {
+        const buttonHtml = await browser.execute('return arguments[0].outerHTML;', buttonElement)
+        if (buttonHtml) {
+          const foundLink = buttonHtml.match(urlRegexp)
+          if (foundLink && foundLink.length > 0) {
+            button.payload = foundLink[0]
+          }
+        }
       }
 
       botMsg.buttons = botMsg.buttons || []
@@ -349,7 +358,10 @@ class BotiumConnectorWebdriverIO {
       this.queue = new Queue((input, cb) => {
         if (this.stopped) return cb()
         if (!this.browser) return cb()
-        input().then(result => cb(null, result)).catch(err => cb(err))
+        input().then(result => cb(null, result)).catch(err => {
+          debug(`Error in Webdriver processing: ${err.message || util.inspect(err)}`)
+          cb(err)
+        })
       })
 
       if (this.ignoreWelcomeMessageCounter > 0) {
