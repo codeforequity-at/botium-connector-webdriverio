@@ -71,6 +71,10 @@ const openBrowserDefault = async (container, browser) => {
   await browser.url(url)
   const title = await browser.getTitle()
   debug(`URL ${url} opened, page title: ${title}`)
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
+    const html = await browser.execute('return document.documentElement.outerHTML;')
+    debug(html)
+  }
   if (container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
     await browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
   }
@@ -305,6 +309,13 @@ class BotiumConnectorWebdriverIO {
       const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
       debug(`Starting phantomJS with args: ${phantomJsArgs}`)
       this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
+      if (debug.enabled) {
+        this.phantomJSProcess.stdout.pipe(process.stdout)
+        this.phantomJSProcess.stderr.pipe(process.stderr)
+      }
+      this.phantomJSProcess.on('exit', code => {
+        debug(`phantomJS exited with code: ${code}`)
+      })
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
@@ -403,9 +414,10 @@ class BotiumConnectorWebdriverIO {
         browserSessionId: this.browser.sessionId
       }
     } catch (err) {
-      debug(`WebDriver error on startup: ${util.inspect(err)}`)
+      debug(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
+      throw new Error(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
+    } finally {
       if (debug.enabled) await this._saveDebugScreenshot('onstart')
-      throw new Error(`WebDriver error on startup: ${util.inspect(err)}`)
     }
   }
 
@@ -415,9 +427,10 @@ class BotiumConnectorWebdriverIO {
       await this.sendToBot(this, this.browser, msg)
       this.ignoreBotMessages = false
     } catch (err) {
-      debug(`WebDriver error on UserSays: ${util.inspect(err)}`)
+      debug(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
+      throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
+    } finally {
       if (debug.enabled) this._saveDebugScreenshot('usersays')
-      throw new Error(`WebDriver error on UserSays: ${util.inspect(err)}`)
     }
   }
 
@@ -436,11 +449,12 @@ class BotiumConnectorWebdriverIO {
     } else {
       if (this.browser && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays') {
         const screenshot = await this._takeScreenshot('onbotsays')
-
-        msg.attachments = msg.attachments || []
-        msg.attachments.push(screenshot)
-        if (debug.enabled) await this._saveDebugScreenshot('usersays')
+        if (screenshot) {
+          msg.attachments = msg.attachments || []
+          msg.attachments.push(screenshot)
+        }
       }
+      if (debug.enabled) await this._saveDebugScreenshot('onbotsays')
       this.queueBotSays(msg)
     }
   }
@@ -450,7 +464,9 @@ class BotiumConnectorWebdriverIO {
 
     if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
       const screenshot = await this._takeScreenshot('onstop')
-      this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+      if (screenshot) {
+        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+      }
     }
     await this._stopBrowser()
     this.stopped = true
@@ -480,7 +496,7 @@ class BotiumConnectorWebdriverIO {
         await this.browser.deleteSession()
         await this.browser.pause(2000) // workaround to shut down chrome driver https://github.com/webdriverio-boneyard/wdio-selenium-standalone-service/issues/28
       } catch (err) {
-        debug(`WARNING: browser.deleteSession failed - ${util.inspect(err)}`)
+        debug(`WARNING: browser.deleteSession failed - ${err.message || util.inspect(err)}`)
       }
       this.browser = null
     }
@@ -500,7 +516,7 @@ class BotiumConnectorWebdriverIO {
           return c
         } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
       }
 
       const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
@@ -511,7 +527,7 @@ class BotiumConnectorWebdriverIO {
           return c
         } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
       }
 
       try {
@@ -531,7 +547,7 @@ class BotiumConnectorWebdriverIO {
           return sandbox.result || Promise.resolve()
         }
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
       }
 
       loadErr.forEach(d => debug(d))
@@ -542,28 +558,34 @@ class BotiumConnectorWebdriverIO {
   }
 
   async _takeScreenshot (section) {
-    try {
-      const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-      const buffer = await this.browser.saveScreenshot(filename)
-      debug(`Screenshot taken, size ${buffer.length}, saved to ${filename}`)
-      return {
-        base64: buffer.toString('base64'),
-        mimeType: 'image/png'
+    if (this.browser) {
+      try {
+        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        const buffer = await this.browser.saveScreenshot(filename)
+        debug(`Screenshot taken, size ${buffer.length}, saved to ${filename}`)
+        return {
+          base64: buffer.toString('base64'),
+          mimeType: 'image/png'
+        }
+      } catch (err) {
+        const errMsg = `Failed to take screenshot: ${err.message || util.inspect(err)}`
+        debug(errMsg)
+        throw new Error(errMsg)
       }
-    } catch (err) {
-      const errMsg = `Failed to take screenshot: ${util.inspect(err)}`
-      debug(errMsg)
-      throw new Error(errMsg)
     }
   }
 
   async _saveDebugScreenshot (section) {
-    try {
-      const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
-      await this.browser.saveScreenshot(filename)
-      debug(`Saved debugging screenshot to ${filename}`)
-    } catch (err) {
-      debug(`Failed to take debug screenshot: ${util.inspect(err)}`)
+    if (this.browser) {
+      try {
+        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        await this.browser.saveScreenshot(filename)
+        debug(`Saved debugging screenshot to ${filename}`)
+      } catch (err) {
+        debug(`Failed to take debug screenshot: ${err.message || util.inspect(err)}`)
+      }
+    } else {
+      debug('Failed to take debug screenshot - browser already closed')
     }
   }
 

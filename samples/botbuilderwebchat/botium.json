@@ -3,7 +3,7 @@
     "Capabilities": {
       "PROJECTNAME": "WebdriverIO Plugin Sample",
       "CONTAINERMODE": "webdriverio",
-      "WEBDRIVERIO_URL": "https://microsoft.github.io/BotFramework-WebChat/01.a.getting-started-full-bundle/",
+      "WEBDRIVERIO_URL": "https://microsoft.github.io/BotFramework-WebChat/01.getting-started/a.full-bundle/",
       "WEBDRIVERIO_OPENBOTPAUSE": 4000,
       "WEBDRIVERIO_OPTIONS": {
         "capabilities": {
