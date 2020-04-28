@@ -72,6 +72,10 @@ const openBrowserDefault = async (container, browser) => {
   await browser.url(url)
   const title = await browser.getTitle()
   debug(`URL ${url} opened, page title: ${title}`)
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
+    const html = await browser.execute('return document.documentElement.outerHTML;')
+    debug(html)
+  }
   if (container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
     await browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
   }
@@ -271,6 +275,13 @@ class BotiumConnectorWebdriverIO {
       const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
       debug(`Starting phantomJS with args: ${phantomJsArgs}`)
       this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
+      if (debug.enabled) {
+        this.phantomJSProcess.stdout.pipe(process.stdout)
+        this.phantomJSProcess.stderr.pipe(process.stderr)
+      }
+      this.phantomJSProcess.on('exit', code => {
+        debug(`phantomJS exited with code: ${code}`)
+      })
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
@@ -430,6 +441,7 @@ class BotiumConnectorWebdriverIO {
           if (debug.enabled) await this._saveDebugScreenshot('usersays')
         }
       }
+      if (debug.enabled) await this._saveDebugScreenshot('onbotsays')
       this.queueBotSays(msg)
     }
   }
@@ -557,7 +569,7 @@ class BotiumConnectorWebdriverIO {
           return c
         } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
       }
 
       const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
@@ -568,7 +580,7 @@ class BotiumConnectorWebdriverIO {
           return c
         } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
       }
 
       try {
@@ -588,7 +600,7 @@ class BotiumConnectorWebdriverIO {
           return sandbox.result || Promise.resolve()
         }
       } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message}`)
+        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
       }
 
       loadErr.forEach(d => debug(d))
@@ -625,6 +637,8 @@ class BotiumConnectorWebdriverIO {
       } catch (err) {
         debug(`Failed to take debug screenshot: ${err.message || util.inspect(err)}`)
       }
+    } else {
+      debug('Failed to take debug screenshot - browser already closed')
     }
   }
 
