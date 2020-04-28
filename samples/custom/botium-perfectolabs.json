@@ -3,14 +3,14 @@
     "Capabilities": {
       "WEBDRIVERIO_OPTIONS": {	
 				"capabilities": {
-          "platformName": "Android",
-          "platformVersion": "9",
-          "testobject_api_key": "..."
+          "model": "Galaxy S7",
+          "browserName": "chrome",
+          "securityToken": "..."
         },
         "protocol": "https",
-        "hostname": "appium.testobject.com",
+        "hostname": "partners.perfectomobile.com",
         "port": 443,
-        "path": "/wd/hub"
+        "path": "/nexperience/perfectomobile/wd/hub"
       },
       "WAITFORBOTTIMEOUT": 30000,
       "WEBDRIVERIO_START_SELENIUM": false

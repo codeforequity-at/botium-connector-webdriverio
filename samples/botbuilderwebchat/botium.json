@@ -2,6 +2,7 @@
   "botium": {
     "Capabilities": {
       "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CLEANUPTEMPDIR": true,
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_URL": "https://microsoft.github.io/BotFramework-WebChat/01.getting-started/a.full-bundle/",
       "WEBDRIVERIO_OPENBOTPAUSE": 4000,
@@ -10,10 +11,16 @@
           "browserName": "chrome",
           "goog:chromeOptions": {
           }
-        }
+        },
+        "protocol": "http",
+        "hostname": "172.25.46.171",
+        "port": 4444,
+        "path": "/wd/hub"
       },
       "WEBDRIVERIO_PROFILE": "botbuilder_webchat_v4",
-      "WEBDRIVERIO_START_SELENIUM": true
+      "WEBDRIVERIO_SCREENSHOTS": "onbotsays",
+      "WEBDRIVERIO_START_SELENIUM": false,
+      "WEBDRIVERIO_START_PHANTOMJS": false
     }
   }
 }

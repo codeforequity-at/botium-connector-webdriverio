@@ -6,6 +6,7 @@ const webdriverio = require('webdriverio')
 const esprima = require('esprima')
 const Mustache = require('mustache')
 const crypto = require('crypto')
+const Queue = require('better-queue')
 const phantomjs = require('phantomjs-prebuilt')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
@@ -78,6 +79,18 @@ const openBrowserDefault = async (container, browser) => {
   if (container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
     await browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
   }
+  try {
+    await browser.execute('window.localStorage.clear();')
+    debug(`URL ${url} opened, deleted local storage`)
+  } catch (err) {
+    debug(`openBrowser failed to delete local storage: ${err.message}`)
+  }
+  try {
+    await browser.execute('window.sessionStorage.clear();')
+    debug(`URL ${url} opened, deleted session storage`)
+  } catch (err) {
+    debug(`openBrowser failed to delete session storage: ${err.message}`)
+  }
 }
 
 const openBotDefault = async (container, browser) => {
@@ -119,74 +132,17 @@ const sendToBotDefault = async (container, browser, msg) => {
   }
 }
 
-const receiveFromBotDefault = (container, browser) => {
+const receiveFromBotDefault = async (container, browser) => {
   const outputElement = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT]
-
-  let cancelled = false
-  const handledElements = []
-
-  const worker = async () => {
-    while (!cancelled) { // eslint-disable-line no-unmodified-loop-condition
-      debug(`polling for bot output (${outputElement}, currentCount: ${handledElements.length}`)
-      try {
-        await browser.waitUntil(async () => {
-          const r = await container.findElements(outputElement)
-          return cancelled || r.length > handledElements.length
-        }, 5000)
-      } catch (err) {
-        if (!cancelled) {
-          debug('Continue polling for bot output ...')
-          continue
-        }
-      }
-      try {
-        if (cancelled) break
-        const r = await container.findElements(outputElement)
-        if (cancelled) break
-
-        for (const element of r) {
-          const html = await browser.execute('return arguments[0].outerHTML;', element)
-          let hashKey
-          if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
-            if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
-              const hashElement = await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
-              const hashHtml = await browser.execute('return arguments[0].outerHTML;', hashElement)
-              hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
-            } else {
-              hashKey = crypto.createHash('md5').update(html).digest('hex')
-            }
-          } else {
-            hashKey = `${element.ELEMENT || element.elementId}`
-          }
-
-          if (handledElements.indexOf(hashKey) < 0) {
-            debug(`Found new bot response element ${outputElement}, id ${element.ELEMENT || element.elementId}, hashKey ${hashKey}`)
-
-            try {
-              if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
-                debug(html)
-              }
-              handledElements.push(hashKey)
-              await container.getBotMessage(container, browser, element)
-            } catch (err) {
-              debug(`Failed in getBotMessage, skipping: ${err}`)
-            }
-          }
-        }
-      } catch (err) {
-        debug(`Failed in receiving from bot: ${err}`)
-      }
-    }
-  }
-  worker().catch((err) => debug(err))
-
-  return () => { cancelled = true }
+  const r = await container.findElements(outputElement)
+  return r
 }
 
-const getBotMessageDefault = async (container, browser, element) => {
+const urlRegexp = /(http|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:/~+#-]*[\w@?^=%&amp;/~+#-])?/
+const getBotMessageDefault = async (container, browser, element, html) => {
   debug(`getBotMessageDefault receiving text for element ${element.ELEMENT || element.elementId}`)
 
-  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId } }
+  const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId, html } }
 
   const isNested = (capName, def) => {
     if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
@@ -224,6 +180,14 @@ const getBotMessageDefault = async (container, browser, element) => {
       const buttonHrefValue = await buttonElement.getAttribute('href')
       if (buttonHrefValue) {
         button.payload = buttonHrefValue
+      } else {
+        const buttonHtml = await browser.execute('return arguments[0].outerHTML;', buttonElement)
+        if (buttonHtml) {
+          const foundLink = buttonHtml.match(urlRegexp)
+          if (foundLink && foundLink.length > 0) {
+            button.payload = foundLink[0]
+          }
+        }
       }
 
       botMsg.buttons = botMsg.buttons || []
@@ -251,6 +215,7 @@ const getBotMessageDefault = async (container, browser, element) => {
   }
 
   if (botMsg.messageText || (botMsg.buttons && botMsg.buttons.length > 0) || (botMsg.media && botMsg.media.length > 0) || !container.caps[Capabilities.WEBDRIVERIO_IGNOREEMPTYMESSAGES]) return container.BotSays(botMsg)
+  else debug(`getBotMessageDefault ignoring empty element ${element.ELEMENT || element.elementId}`)
 }
 
 class BotiumConnectorWebdriverIO {
@@ -259,6 +224,7 @@ class BotiumConnectorWebdriverIO {
     this.queueBotSays = queueBotSays
     this.eventEmitter = eventEmitter
     this.caps = caps
+    this.handledElement = []
     this.screenshotCounterBySection = {}
   }
 
@@ -339,6 +305,7 @@ class BotiumConnectorWebdriverIO {
   async Start () {
     debug('Start called')
     this.stopped = false
+    this.handledElements = []
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
       this.ignoreWelcomeMessageCounter = this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]
@@ -395,19 +362,28 @@ class BotiumConnectorWebdriverIO {
       }
 
       await this.openBot(this, this.browser)
+      if (this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE]) {
+        await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE])
+      }
+
+      this.queue = new Queue((input, cb) => {
+        if (this.stopped) return cb()
+        if (!this.browser) return cb()
+        input().then(result => cb(null, result)).catch(err => {
+          debug(`Error in Webdriver processing: ${err.message || util.inspect(err)}`)
+          cb(err)
+        })
+      })
 
       if (this.ignoreWelcomeMessageCounter > 0) {
         debug(`Waiting for ${this.ignoreWelcomeMessageCounter} welcome messages (will be ignored) ...`)
         await new Promise((resolve) => {
           this.ignoreWelcomeMessagesResolve = resolve
-          this.cancelReceive = this.receiveFromBot(this, this.browser)
+          this.queue.push(() => this._handleNewElements())
         })
       } else {
         this.ignoreWelcomeMessagesResolve = null
-        this.cancelReceive = this.receiveFromBot(this, this.browser)
-      }
-      if (this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE]) {
-        await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OPENBOTPAUSE])
+        this.queue.push(() => this._handleNewElements())
       }
 
       return {
@@ -417,21 +393,31 @@ class BotiumConnectorWebdriverIO {
       debug(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
       throw new Error(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
     } finally {
-      if (debug.enabled) await this._saveDebugScreenshot('onstart')
+      if (debug.enabled) {
+        if (this.queue) {
+          await this._runInQueue(async () => {
+            await this._saveDebugScreenshot('onstart')
+          })
+        } else {
+          await this._saveDebugScreenshot('onstart')
+        }
+      }
     }
   }
 
   async UserSays (msg) {
-    debug(`UserSays called ${util.inspect(msg)}`)
-    try {
-      await this.sendToBot(this, this.browser, msg)
-      this.ignoreBotMessages = false
-    } catch (err) {
-      debug(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
-      throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
-    } finally {
-      if (debug.enabled) this._saveDebugScreenshot('usersays')
-    }
+    debug(`UserSays called "${msg.messageText}"`)
+    await this._runInQueue(async () => {
+      try {
+        await this.sendToBot(this, this.browser, msg)
+        this.ignoreBotMessages = false
+      } catch (err) {
+        debug(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
+        throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
+      } finally {
+        if (debug.enabled) await this._saveDebugScreenshot('usersays')
+      }
+    })
   }
 
   async BotSays (msg) {
@@ -441,7 +427,7 @@ class BotiumConnectorWebdriverIO {
       debug('BotSays ignoring upfront message')
     } else if (this.ignoreWelcomeMessageCounter > 0) {
       this.ignoreWelcomeMessageCounter--
-      debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessageCounter} remaining ${util.inspect(msg)}`)
+      debug(`BotSays ignoring welcome message, ${this.ignoreWelcomeMessageCounter} remaining`)
       if (this.ignoreWelcomeMessageCounter === 0 && this.ignoreWelcomeMessagesResolve) {
         this.ignoreWelcomeMessagesResolve()
         this.ignoreWelcomeMessagesResolve = null
@@ -452,6 +438,7 @@ class BotiumConnectorWebdriverIO {
         if (screenshot) {
           msg.attachments = msg.attachments || []
           msg.attachments.push(screenshot)
+          if (debug.enabled) await this._saveDebugScreenshot('usersays')
         }
       }
       if (debug.enabled) await this._saveDebugScreenshot('onbotsays')
@@ -463,10 +450,12 @@ class BotiumConnectorWebdriverIO {
     debug('Stop called')
 
     if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
-      const screenshot = await this._takeScreenshot('onstop')
-      if (screenshot) {
-        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
-      }
+      await this._runInQueue(async () => {
+        const screenshot = await this._takeScreenshot('onstop')
+        if (screenshot) {
+          this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+        }
+      })
     }
     await this._stopBrowser()
     this.stopped = true
@@ -487,19 +476,83 @@ class BotiumConnectorWebdriverIO {
     }
   }
 
-  async _stopBrowser () {
-    if (this.cancelReceive) {
-      this.cancelReceive()
+  async _runInQueue (fn) {
+    if (this.queue) {
+      return new Promise((resolve, reject) => {
+        this.queue.push(fn)
+          .on('finish', resolve)
+          .on('failed', reject)
+      })
+    } else {
+      throw new Error('Connector not yet started')
     }
-    if (this.browser) {
+  }
+
+  async _handleNewElements () {
+    try {
+      const r = await this.receiveFromBot(this, this.browser)
+
+      for (const element of (r || [])) {
+        const html = await this.browser.execute('return arguments[0].outerHTML;', element)
+        let hashKey
+        if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
+          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
+            const hashElement = await element.$(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
+            const hashHtml = await this.browser.execute('return arguments[0].outerHTML;', hashElement)
+            hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
+          } else {
+            hashKey = crypto.createHash('md5').update(html).digest('hex')
+          }
+        } else {
+          hashKey = `${element.ELEMENT || element.elementId}`
+        }
+
+        if (this.handledElements.indexOf(hashKey) < 0) {
+          debug(`Found new bot response element, id ${element.ELEMENT || element.elementId}, hashKey ${hashKey}`)
+
+          try {
+            if (html && this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
+              debug(html)
+            }
+            this.handledElements.push(hashKey)
+            if (this.queue) this.queue.push(() => this.getBotMessage(this, this.browser, element, html))
+          } catch (err) {
+            debug(`Failed in getBotMessage, skipping: ${err}`)
+          }
+        }
+      }
+    } catch (err) {
+      debug(`Failed in receiving from bot: ${err}`)
+    }
+    setTimeout(() => {
+      if (this.queue) {
+        this.queue.push(() => this._handleNewElements())
+      }
+    }, 1000)
+  }
+
+  async _stopBrowser () {
+    const localStop = async () => {
       try {
         await this.browser.deleteSession()
         await this.browser.pause(2000) // workaround to shut down chrome driver https://github.com/webdriverio-boneyard/wdio-selenium-standalone-service/issues/28
       } catch (err) {
         debug(`WARNING: browser.deleteSession failed - ${err.message || util.inspect(err)}`)
       }
-      this.browser = null
     }
+
+    if (this.browser) {
+      if (this.queue) {
+        await this._runInQueue(() => localStop())
+      } else {
+        await localStop()
+      }
+    }
+    if (this.queue) {
+      await new Promise((resolve) => this.queue.destroy(resolve))
+    }
+    this.browser = null
+    this.queue = null
   }
 
   _loadFunction (capName, defaultFunction) {
