@@ -9,8 +9,7 @@
     "eslint": "eslint index.js profiles/*.js",
     "eslint-fix": "eslint --fix index.js profiles/*.js",
     "selenium": "selenium-standalone start",
-    "selenium-install": "selenium-standalone install",
-    "phantomjs": "phantomjs --webdriver=4444"
+    "selenium-install": "selenium-standalone install"
   },
   "repository": {
     "type": "git",
@@ -42,12 +41,12 @@
   "dependencies": {
     "@babel/runtime": "^7.7.2",
     "better-queue": "^3.8.10",
+    "chromedriver": "^81.0.0",
     "debug": "^4.1.1",
     "esprima": "^4.0.1",
     "lodash": "^4.17.15",
     "mime-types": "^2.1.25",
     "mustache": "^3.1.0",
-    "phantomjs-prebuilt": "^2.1.16",
     "selenium-standalone": "^6.16.0",
     "webdriverio": "^5.16.7"
   }

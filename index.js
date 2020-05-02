@@ -7,7 +7,7 @@ const esprima = require('esprima')
 const Mustache = require('mustache')
 const crypto = require('crypto')
 const Queue = require('better-queue')
-const phantomjs = require('phantomjs-prebuilt')
+const chromedriver = require('chromedriver')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
@@ -62,8 +62,8 @@ const Capabilities = {
   WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
   WEBDRIVERIO_START_SELENIUM_OPTS: 'WEBDRIVERIO_START_SELENIUM_OPTS',
-  WEBDRIVERIO_START_PHANTOMJS: 'WEBDRIVERIO_START_PHANTOMJS',
-  WEBDRIVERIO_START_PHANTOMJS_ARGS: 'WEBDRIVERIO_START_PHANTOMJS_ARGS'
+  WEBDRIVERIO_START_CHROMEDRIVER: 'WEBDRIVERIO_START_CHROMEDRIVER',
+  WEBDRIVERIO_START_CHROMEDRIVER_ARGS: 'WEBDRIVERIO_START_CHROMEDRIVER_ARGS'
 }
 
 const openBrowserDefault = async (container, browser) => {
@@ -237,7 +237,7 @@ class BotiumConnectorWebdriverIO {
       this.caps = Object.assign(this.caps, profile)
     }
 
-    if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_PHANTOMJS)')
+    if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
     if (!this.caps[Capabilities.WEBDRIVERIO_URL] && !this.caps[Capabilities.WEBDRIVERIO_OPENBROWSER]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_OPENBROWSER or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
@@ -255,8 +255,8 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
 
-    if (this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS] && this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
-      throw new Error('WEBDRIVERIO_START_PHANTOMJS and WEBDRIVERIO_START_SELENIUM are invalid in combination')
+    if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER] && this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
+      throw new Error('WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_SELENIUM are invalid in combination')
     }
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] && _.isString(this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS])) {
@@ -271,17 +271,10 @@ class BotiumConnectorWebdriverIO {
   async Build () {
     debug('Build called')
 
-    if (this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
-      const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
-      debug(`Starting phantomJS with args: ${phantomJsArgs}`)
-      this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
-      if (debug.enabled) {
-        this.phantomJSProcess.stdout.pipe(process.stdout)
-        this.phantomJSProcess.stderr.pipe(process.stderr)
-      }
-      this.phantomJSProcess.on('exit', code => {
-        debug(`phantomJS exited with code: ${code}`)
-      })
+    if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || ['--port=4444', '--url-base=wd/hub']
+      debug(`Starting Chrome with args: ${chromeArgs}`)
+      await chromedriver.start(chromeArgs, true)
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
@@ -322,9 +315,12 @@ class BotiumConnectorWebdriverIO {
         options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }
 
-      if (!options.capabilities && this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
+      if (!options.capabilities && this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
         options.capabilities = {
-          browserName: 'phantomjs'
+          browserName: 'chrome',
+          'goog:chromeOptions': {
+            args: ['--headless', '--no-sandbox', '--disable-gpu']
+          }
         }
       }
 
@@ -464,10 +460,9 @@ class BotiumConnectorWebdriverIO {
   async Clean () {
     debug('Clean called')
     await this._stopBrowser()
-    if (this.phantomJSProcess) {
-      debug(`Killing phantomJS process ${this.phantomJSProcess.pid}`)
-      process.kill(this.phantomJSProcess.pid, 'SIGKILL')
-      this.phantomJSProcess = null
+    if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+      debug('Stopping chromedriver')
+      chromedriver.stop()
     }
     if (this.seleniumChild) {
       debug('Killing selenium process')
