@@ -7,7 +7,7 @@ const esprima = require('esprima')
 const Mustache = require('mustache')
 const crypto = require('crypto')
 const Queue = require('better-queue')
-const phantomjs = require('phantomjs-prebuilt')
+const chromedriver = require('chromedriver')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
@@ -52,6 +52,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR',
+  WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_IGNOREEMPTYMESSAGES: 'WEBDRIVERIO_IGNOREEMPTYMESSAGES',
@@ -62,8 +63,8 @@ const Capabilities = {
   WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
   WEBDRIVERIO_START_SELENIUM_OPTS: 'WEBDRIVERIO_START_SELENIUM_OPTS',
-  WEBDRIVERIO_START_PHANTOMJS: 'WEBDRIVERIO_START_PHANTOMJS',
-  WEBDRIVERIO_START_PHANTOMJS_ARGS: 'WEBDRIVERIO_START_PHANTOMJS_ARGS'
+  WEBDRIVERIO_START_CHROMEDRIVER: 'WEBDRIVERIO_START_CHROMEDRIVER',
+  WEBDRIVERIO_START_CHROMEDRIVER_ARGS: 'WEBDRIVERIO_START_CHROMEDRIVER_ARGS'
 }
 
 const openBrowserDefault = async (container, browser) => {
@@ -121,12 +122,14 @@ const sendToBotDefault = async (container, browser, msg) => {
     await inputElement.waitForEnabled(inputElementVisibleTimeout)
     debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}"`)
     if (inputElementSendButtonSelector) {
-      await inputElement.setValue(msg.messageText)
+      debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
+      await inputElement.setValue([...msg.messageText])
       const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
       await inputElementSendButton.waitForEnabled(inputElementVisibleTimeout)
       debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
       await inputElementSendButton.click()
     } else {
+      debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Enter key)`)
       await inputElement.setValue([...msg.messageText, 'Enter'])
     }
   }
@@ -237,7 +240,7 @@ class BotiumConnectorWebdriverIO {
       this.caps = Object.assign(this.caps, profile)
     }
 
-    if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_PHANTOMJS)')
+    if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
     if (!this.caps[Capabilities.WEBDRIVERIO_URL] && !this.caps[Capabilities.WEBDRIVERIO_OPENBROWSER]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_OPENBROWSER or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
@@ -255,8 +258,8 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
 
-    if (this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS] && this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
-      throw new Error('WEBDRIVERIO_START_PHANTOMJS and WEBDRIVERIO_START_SELENIUM are invalid in combination')
+    if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER] && this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
+      throw new Error('WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_SELENIUM are invalid in combination')
     }
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] && _.isString(this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS])) {
@@ -271,17 +274,10 @@ class BotiumConnectorWebdriverIO {
   async Build () {
     debug('Build called')
 
-    if (this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
-      const phantomJsArgs = this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS_ARGS] || '--webdriver=4444'
-      debug(`Starting phantomJS with args: ${phantomJsArgs}`)
-      this.phantomJSProcess = await phantomjs.run(phantomJsArgs)
-      if (debug.enabled) {
-        this.phantomJSProcess.stdout.pipe(process.stdout)
-        this.phantomJSProcess.stderr.pipe(process.stderr)
-      }
-      this.phantomJSProcess.on('exit', code => {
-        debug(`phantomJS exited with code: ${code}`)
-      })
+    if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || ['--port=4444', '--url-base=wd/hub']
+      debug(`Starting Chrome with args: ${chromeArgs}`)
+      await chromedriver.start(chromeArgs, true)
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       let seleniumOpts = this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS] || {}
       if (seleniumOpts && _.isString(seleniumOpts)) {
@@ -322,10 +318,13 @@ class BotiumConnectorWebdriverIO {
         options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }
 
-      if (!options.capabilities && this.caps[Capabilities.WEBDRIVERIO_START_PHANTOMJS]) {
-        options.capabilities = {
-          browserName: 'phantomjs'
-        }
+      if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+        options.capabilities = Object.assign({
+          browserName: 'chrome',
+          'goog:chromeOptions': {
+            args: ['--headless', '--no-sandbox', '--disable-gpu']
+          }
+        }, options.capabilities || {})
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_HTTP_PROXY] || this.caps[Capabilities.WEBDRIVERIO_HTTPS_PROXY]) {
@@ -464,10 +463,9 @@ class BotiumConnectorWebdriverIO {
   async Clean () {
     debug('Clean called')
     await this._stopBrowser()
-    if (this.phantomJSProcess) {
-      debug(`Killing phantomJS process ${this.phantomJSProcess.pid}`)
-      process.kill(this.phantomJSProcess.pid, 'SIGKILL')
-      this.phantomJSProcess = null
+    if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+      debug('Stopping chromedriver')
+      chromedriver.stop()
     }
     if (this.seleniumChild) {
       debug('Killing selenium process')
@@ -496,7 +494,9 @@ class BotiumConnectorWebdriverIO {
         const html = await this.browser.execute('return arguments[0].outerHTML;', element)
         let hashKey
         if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
-          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
+          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
+            hashKey = await element.getAttribute(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE])
+          } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
             const hashElement = await element.$(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
             const hashHtml = await this.browser.execute('return arguments[0].outerHTML;', hashElement)
             hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')

@@ -9,12 +9,13 @@
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
+    "botium-logichook-perfectoreporting": "latest",
     "cross-env": "^7.0.0",
     "mocha": "latest"
   },
   "botium": {
     "convodirs": [
-      "spec\\convo"
+      "spec/convo"
     ],
     "expandConvos": true,
     "expandUtterancesToConvos": false

@@ -4,11 +4,6 @@
       "PROJECTNAME": "WebdriverIO Plugin Sample",
       "CONTAINERMODE": "webdriverio",
       "CLEANUPTEMPDIR": false,
-      "WEBDRIVERIO_OPTIONS": {	
-        "capabilities": {
-          "browserName": "chrome"
-        }
-      },
       "WEBDRIVERIO_URL": "https://www.drei.at",
       "WEBDRIVERIO_OPENBOT": "./snippets/openbot",
       "WEBDRIVERIO_INPUT_ELEMENT": "#textInput",
@@ -17,9 +12,7 @@
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "HASH",
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR": "./div[contains(@class,'message-inner')]/div[contains(@class,'text')]",
       "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
-      "WEBDRIVERIO_START_SELENIUM": true,
-      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": false,
-      "WEBDRIVERIO_SELENIUM_DEBUG": false
+      "WEBDRIVERIO_START_CHROMEDRIVER": true
     }
   }
 }

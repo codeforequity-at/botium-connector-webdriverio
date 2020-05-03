@@ -57,7 +57,7 @@ _Already integrated into Botium Box, no setup required_
 
 ## Preparation Steps: Selenium server
 
-An installed and running Selenium server is required. If you don't have a Selenium server already installed (or access to a cloud based Selenium server like Saucelabs), you can use the scripts in this repository as a starter to either install a full-blown Selenium server, or just a small PhantomJS server.
+An installed and running Selenium server is required. If you don't have a Selenium server already installed (or access to a cloud based Selenium server like Saucelabs), you can use the scripts in this repository as a starter to either install a full-blown Selenium server, or just a headless Chrome browser.
 
 ### Installing and starting the Selenium server (with Chrome, Edge, Firefox)
 
@@ -94,23 +94,11 @@ To automatically start the integrated Selenium server when Botium is executing, 
 
 With this running Selenium server you can now run the Botium samples.
 
-### Installing and starting the Phantomjs server
+### Using headless chrome
 
-As a very small replacement you can also start with [Phantomjs](http://phantomjs.org/), a headless browser. You won't need a separate Selenium installation in this case.
+As a very small replacement you can also start with headless Chrome browser. You won't need a separate Selenium installation in this case.
 
-#### Using the integrated PhantomJS server
-
-Setting the capability "WEBDRIVERIO_START_PHANTOMJS" to true will make Botium start an integrated PhantomJS automatically (and stop it afterwards).
-
-#### Starting a separate Phantomjs server
-
-After cloning the repository (see above), just run this command to start PhantomJS server:
-
-```
-> npm run phantomjs
-```
-
-You can run the Botium samples with this PhantomJS server now - but be aware that some websites don't work well with PhantomJS.
+Setting the capability "WEBDRIVERIO_START_CHROMEDRIVER" to true will make Botium start an integrated Chrome automatically (and stop it afterwards).
 
 ## Preparation Steps: Analyze Chatbot Widget
 
@@ -294,7 +282,7 @@ This example selects the cloud device provider Saucelabs:
 > npm install && npm test
 ```
 
-(This sample will use the integrated PhantomJS server)
+(This sample will use the a headless Chrome brwoser)
 
 Check the botium.json files in the sample directories for setting up the browser to use for the Botium conversation. You maybe have to tune the Selenium capabilities in the botium.json file - again, in case of troubles with Selenium, this project is not the right place to ask.
 
@@ -413,7 +401,8 @@ _Default: ELEMENTID_
 The algorithm used to calculate a unique identifier for an identified output element. By default, the Webdriver element identifier is chosen, and this works in most cases. But depending on the level of dynamic content, it might be a better approach to use the output HTML content itself as (very long) identifier. This is recommended in those cases:
 
 * On iOs the Webdriver element identifier is not unique, so you have to rely on HTML content to be unique
-* If you have a unique identifier in the HTML content (in combination with _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR_)
+* If you have unique HTML content (in combination with _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR_)
+* If you have a unique identifier in the HTML content (in combination with _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE_)
 
 Possible values:
 
@@ -435,6 +424,22 @@ For instance, HTML for a bot message could look like this:
 * **WEBDRIVERIO_OUTPUT_ELEMENT** - //div[contains(@class,'bot-message')]
 * **WEBDRIVERIO_OUTPUT_ELEMENT_HASH** - HASH
 * **WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR** - ./div[contains(@class,'text')]
+
+### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE
+_Default: empty_
+
+If _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ is **HASH**, then it is possible to specify the id attribute. 
+
+For instance, HTML for a bot message could look like this:
+
+```
+<div class="bot-message" id="1683949299888"><div class="text">Hey, meat bag!</div></div>
+
+```
+
+* **WEBDRIVERIO_OUTPUT_ELEMENT** - //div[contains(@class,'bot-message')]
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH** - HASH
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE** - id
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML
 _Default: false_
@@ -476,9 +481,9 @@ Start the integrated Selenium server automatically.
 
 The options are handed over to Selenium-standalone 1:1 - see [here](https://github.com/vvo/selenium-standalone#example) for examples how to adapt it to your driver versions.
 
-### WEBDRIVERIO_START_PHANTOMJS and WEBDRIVERIO_START_PHANTOMJS_ARGS
+### WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_CHROMEDRIVER_ARGS
 _Default: false_
 
-_Default args: --webdriver=4444_
+_Default args: --port=4444 --url-base=wd/hub_
 
-Start the integrated PhantomJS server automatically
+Start the a headless Chrome browser automatically
