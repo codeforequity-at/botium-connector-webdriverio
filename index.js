@@ -122,12 +122,14 @@ const sendToBotDefault = async (container, browser, msg) => {
     await inputElement.waitForEnabled(inputElementVisibleTimeout)
     debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}"`)
     if (inputElementSendButtonSelector) {
-      await inputElement.setValue(msg.messageText)
+      debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
+      await inputElement.setValue([...msg.messageText])
       const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
       await inputElementSendButton.waitForEnabled(inputElementVisibleTimeout)
       debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
       await inputElementSendButton.click()
     } else {
+      debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Enter key)`)
       await inputElement.setValue([...msg.messageText, 'Enter'])
     }
   }
@@ -316,13 +318,13 @@ class BotiumConnectorWebdriverIO {
         options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }
 
-      if (!options.capabilities && this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
-        options.capabilities = {
+      if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+        options.capabilities = Object.assign({
           browserName: 'chrome',
           'goog:chromeOptions': {
             args: ['--headless', '--no-sandbox', '--disable-gpu']
           }
-        }
+        }, options.capabilities || {})
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_HTTP_PROXY] || this.caps[Capabilities.WEBDRIVERIO_HTTPS_PROXY]) {

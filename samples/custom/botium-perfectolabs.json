@@ -13,7 +13,14 @@
         "path": "/nexperience/perfectomobile/wd/hub"
       },
       "WAITFORBOTTIMEOUT": 30000,
-      "WEBDRIVERIO_START_CHROMEDRIVER": false
+      "WEBDRIVERIO_START_CHROMEDRIVER": false,
+      "LOGIC_HOOKS": [
+        {
+          "ref": "PERFECTO-REPORTING",
+          "src": "botium-logichook-perfectoreporting",
+          "global": true
+        }
+      ]      
     }
   }
 }

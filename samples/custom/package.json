@@ -9,6 +9,7 @@
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
+    "botium-logichook-perfectoreporting": "latest",
     "cross-env": "^7.0.0",
     "mocha": "latest"
   },
