@@ -13,7 +13,7 @@
         "path": "/nexperience/perfectomobile/wd/hub"
       },
       "WAITFORBOTTIMEOUT": 30000,
-      "WEBDRIVERIO_START_SELENIUM": false
+      "WEBDRIVERIO_START_CHROMEDRIVER": false
     }
   }
 }
