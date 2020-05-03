@@ -1,6 +1,6 @@
 {
   "name": "botium-connector-webdriverio",
-  "version": "0.2.2",
+  "version": "0.3.0,
   "description": "Botium Connector for WebdriverIO scripts",
   "main": "dist/botium-connector-webdriverio-cjs.js",
   "module": "dist/botium-connector-webdriverio-es.js",
@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/codeforequity-at/botium-core/issues"
   },
-  "homepage": "https://github.com/codeforequity-at/botium-core",
+  "homepage": "https://www.botium.ai",
   "devDependencies": {
     "@babel/core": "^7.7.2",
     "@babel/node": "^7.7.0",
