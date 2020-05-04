@@ -109,10 +109,10 @@ const sendToBotDefault = async (container, browser, msg) => {
   const inputElementSendButtonSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
-    const qrView = { 
-      button: { 
+    const qrView = {
+      button: {
         text: msg.buttons[0].text || msg.buttons[0].payload,
-        payload: msg.buttons[0].payload || msg.buttons[0].text,
+        payload: msg.buttons[0].payload || msg.buttons[0].text
       }
     }
     qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
