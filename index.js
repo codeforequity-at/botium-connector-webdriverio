@@ -109,8 +109,17 @@ const sendToBotDefault = async (container, browser, msg) => {
   const inputElementSendButtonSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
-    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(text(),\'{{button.text}}\')][last()] | //a[contains(text(),\'{{button.text}}\')][last()]'
-    const qrSelector = Mustache.render(qrSelectorTemplate, { button: { text: msg.buttons[0].text || msg.buttons[0].payload, payload: msg.buttons[0].payload || msg.buttons[0].text } })
+    const qrView = { 
+      button: { 
+        text: msg.buttons[0].text || msg.buttons[0].payload,
+        payload: msg.buttons[0].payload || msg.buttons[0].text,
+      }
+    }
+    qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
+    qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
+
+    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),\'{{button.textlower}}\')][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),\'{{button.textlower}}\')][last()]'
+    const qrSelector = Mustache.render(qrSelectorTemplate, qrView)
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
     const qrElement = await container.findElement(qrSelector)
@@ -275,7 +284,8 @@ class BotiumConnectorWebdriverIO {
     debug('Build called')
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
-      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || ['--port=4444', '--url-base=wd/hub']
+      this.chromePort = Math.floor(Math.random() * 10000 + 40000)
+      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || [`--port=${this.chromePort}`, '--url-base=wd/hub']
       debug(`Starting Chrome with args: ${chromeArgs}`)
       await chromedriver.start(chromeArgs, true)
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
@@ -319,6 +329,10 @@ class BotiumConnectorWebdriverIO {
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+        options.protocol = 'http'
+        options.hostname = '127.0.0.1'
+        options.port = this.chromePort
+        options.path = '/wd/hub'
         options.capabilities = Object.assign({
           browserName: 'chrome',
           'goog:chromeOptions': {
