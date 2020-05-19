@@ -2,12 +2,14 @@
   "botium": {
     "Capabilities": {
       "PROJECTNAME": "WebdriverIO Coronabot Sample",
+      "CLEANUPTEMPDIR": true,
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_URL": "https://coronabot.at/chat/",
       "WEBDRIVERIO_OPENBOTPAUSE": 4000,
       "WEBDRIVERIO_PROFILE": "botbuilder_webchat_v4",
       "WEBDRIVERIO_SCREENSHOTS": "onbotsays",
-      "WEBDRIVERIO_START_CHROMEDRIVER": true
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": false
     }
   }
 }

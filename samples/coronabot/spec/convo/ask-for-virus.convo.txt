@@ -1,4 +1,4 @@
-virus
+ask-for-virus
 
 #bot
 Hallo, bitte stellen Sie mir eine Frage zum Corona-Virus und ich versuche sie zu beantworten!
@@ -11,3 +11,4 @@ BUTTONS WOHER KOMMT DAS VIRUS?|WELCHE SYMPTOME GIBT ES?|WIE KANN MAN SICH SCHÜT
 BUTTON WOHER KOMMT DAS VIRUS?
 
 #bot
+Die Übertragung des Coronavirus passierte

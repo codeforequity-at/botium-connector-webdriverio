@@ -1,0 +1,14 @@
+ask-for-corona-protection
+
+#bot
+Hallo, bitte stellen Sie mir eine Frage zum Corona-Virus und ich versuche sie zu beantworten!
+
+#bot
+Oft gestellte Fragen:
+BUTTONS WOHER KOMMT DAS VIRUS?|WELCHE SYMPTOME GIBT ES?|WIE KANN MAN SICH SCHÜTZEN?
+
+#me
+WIE KANN MAN SICH SCHÜTZEN?
+
+#bot
+Um generell die Ausbreitung von Infektionskrankheiten der Atemwege zu vermeiden

@@ -387,6 +387,10 @@ _Default: .//button | .//a[@href]_
 
 If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED to _true_ (default). Some chatbot widgets show Quick Response Buttons as overlay, not within the DOM of the chat window - for these cases, setting this capability to _false_ will help.
 
+### WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS
+_Default: empty_
+
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting additional buttons shown on the screen.
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA and WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED
 _Default: .//img | .//video | .//audio_
@@ -403,11 +407,13 @@ The algorithm used to calculate a unique identifier for an identified output ele
 * On iOs the Webdriver element identifier is not unique, so you have to rely on HTML content to be unique
 * If you have unique HTML content (in combination with _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR_)
 * If you have a unique identifier in the HTML content (in combination with _WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE_)
+* Depending on your test cases, _TEXT_ is a safe option (if there are no loops in the conversations)
 
 Possible values:
 
 * ELEMENTID - use the Webdriver element identifier
 * HASH - use the HTML output as identifier
+* TEXT - use the displayed text as identifier
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR
 _Default: empty_

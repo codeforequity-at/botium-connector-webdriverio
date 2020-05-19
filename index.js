@@ -47,6 +47,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS',
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED',
+  WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
@@ -183,6 +184,14 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   } else {
     buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   }
+  
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
+    const extraButtonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS])
+    if (extraButtonElements) {
+      buttonElements = (buttonElements || []).concat(extraButtonElements)
+    }
+  }
+
   for (const buttonElement of (buttonElements || [])) {
     const buttonElementText = await buttonElement.getText()
     if (buttonElementText) {
@@ -193,7 +202,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
       if (buttonHrefValue) {
         button.payload = buttonHrefValue
       } else {
-        const buttonHtml = await browser.execute('return arguments[0].outerHTML;', buttonElement)
+        const buttonHtml = await buttonElement.getHTML()
         if (buttonHtml) {
           const foundLink = buttonHtml.match(urlRegexp)
           if (foundLink && foundLink.length > 0) {
@@ -503,36 +512,39 @@ class BotiumConnectorWebdriverIO {
   async _handleNewElements () {
     try {
       const r = await this.receiveFromBot(this, this.browser)
-
       for (const element of (r || [])) {
-        const html = await this.browser.execute('return arguments[0].outerHTML;', element)
-        let hashKey
-        if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
-          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
-            hashKey = await element.getAttribute(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE])
-          } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
-            const hashElement = await element.$(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
-            const hashHtml = await this.browser.execute('return arguments[0].outerHTML;', hashElement)
-            hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
+        try {
+         const html = await element.getHTML()
+
+          let hashKey
+          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
+            if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
+              hashKey = await element.getAttribute(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE])
+            } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
+              const hashElement = await element.$(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
+              const hashHtml = await hashElement.getHTML()
+              hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
+            } else if (html) {
+              hashKey = crypto.createHash('md5').update(html).digest('hex')
+            } else {
+              continue
+            }
+          } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'TEXT') {
+            hashKey = await element.getText()
           } else {
-            hashKey = crypto.createHash('md5').update(html).digest('hex')
+            hashKey = `${element.ELEMENT || element.elementId}`
           }
-        } else {
-          hashKey = `${element.ELEMENT || element.elementId}`
-        }
+          if (this.handledElements.indexOf(hashKey) < 0) {
+            debug(`Found new bot response element, id ${element.ELEMENT || element.elementId}, hashKey ${hashKey}`)
 
-        if (this.handledElements.indexOf(hashKey) < 0) {
-          debug(`Found new bot response element, id ${element.ELEMENT || element.elementId}, hashKey ${hashKey}`)
-
-          try {
             if (html && this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
               debug(html)
             }
             this.handledElements.push(hashKey)
             if (this.queue) this.queue.push(() => this.getBotMessage(this, this.browser, element, html))
-          } catch (err) {
-            debug(`Failed in getBotMessage, skipping: ${err}`)
           }
+        } catch (err) {
+          debug(`Failed in getBotMessage, skipping: ${err}`)
         }
       }
     } catch (err) {

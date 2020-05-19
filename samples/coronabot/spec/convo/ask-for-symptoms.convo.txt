@@ -1,0 +1,14 @@
+ask-for-symptoms
+
+#bot
+Hallo, bitte stellen Sie mir eine Frage zum Corona-Virus und ich versuche sie zu beantworten!
+
+#bot
+Oft gestellte Fragen:
+BUTTONS WOHER KOMMT DAS VIRUS?|WELCHE SYMPTOME GIBT ES?|WIE KANN MAN SICH SCHÜTZEN?
+
+#me
+BUTTON WELCHE SYMPTOME GIBT ES?
+
+#bot
+Laut WHO löst das neue Virus Atembeschwerden, Fieber und Husten aus.

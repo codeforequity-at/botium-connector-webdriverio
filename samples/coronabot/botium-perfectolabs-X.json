@@ -1,0 +1,26 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "Perfectolabs Coronabot Sample - iPhone X",
+      "WEBDRIVERIO_OPTIONS": {	
+				"capabilities": {
+          "model": "iPhone-X",
+          "securityToken": "..."
+        },
+        "protocol": "https",
+        "hostname": "partners.perfectomobile.com",
+        "port": 443,
+        "path": "/nexperience/perfectomobile/wd/hub"
+      },
+      "WAITFORBOTTIMEOUT": 30000,
+      "WEBDRIVERIO_START_CHROMEDRIVER": false,
+      "LOGIC_HOOKS": [
+        {
+          "ref": "PERFECTO-REPORTING",
+          "src": "botium-logichook-perfectoreporting",
+          "global": true
+        }
+      ]      
+    }
+  }
+}

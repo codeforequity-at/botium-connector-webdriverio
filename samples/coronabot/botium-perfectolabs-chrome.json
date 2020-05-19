@@ -1,0 +1,29 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "Perfectolabs Coronabot Sample - Chrome",
+      "WEBDRIVERIO_OPTIONS": {	
+				"capabilities": {
+          "platformName": "Windows",
+          "platformVersion": "10",
+          "browserName": "Chrome",
+          "browserVersion": "80",
+          "securityToken": "..."
+        },
+        "protocol": "https",
+        "hostname": "partners.perfectomobile.com",
+        "port": 443,
+        "path": "/nexperience/perfectomobile/wd/hub"
+      },
+      "WAITFORBOTTIMEOUT": 30000,
+      "WEBDRIVERIO_START_CHROMEDRIVER": false,
+      "LOGIC_HOOKS": [
+        {
+          "ref": "PERFECTO-REPORTING",
+          "src": "botium-logichook-perfectoreporting",
+          "global": true
+        }
+      ]      
+    }
+  }
+}
