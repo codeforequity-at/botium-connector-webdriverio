@@ -184,7 +184,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   } else {
     buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   }
-  
+
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
     const extraButtonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS])
     if (extraButtonElements) {
@@ -514,7 +514,7 @@ class BotiumConnectorWebdriverIO {
       const r = await this.receiveFromBot(this, this.browser)
       for (const element of (r || [])) {
         try {
-         const html = await element.getHTML()
+          const html = await element.getHTML()
 
           let hashKey
           if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
