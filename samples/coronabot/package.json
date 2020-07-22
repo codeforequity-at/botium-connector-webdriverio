@@ -2,6 +2,7 @@
   "name": "botbuilderwebchat",
   "version": "1.0.0",
   "scripts": {
+    "crawler": "botium-crawler-cli crawler-run --config botium.json --numberOfWelcomeMessages 2 --output spec/crawler",
     "test": "mocha spec",
     "test-perfecto-S7": "cross-env BOTIUM_CONFIG=botium-perfectolabs-S7.json mocha spec",
     "test-perfecto-chrome": "cross-env BOTIUM_CONFIG=botium-perfectolabs-chrome.json mocha spec",
@@ -10,6 +11,7 @@
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
+    "botium-crawler": "https://github.com/codeforequity-at/botium-crawler.git#master",
     "botium-logichook-perfectoreporting": "latest",
     "cross-env": "latest",
     "mocha": "latest"

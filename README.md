@@ -94,11 +94,19 @@ To automatically start the integrated Selenium server when Botium is executing, 
 
 With this running Selenium server you can now run the Botium samples.
 
-### Using headless chrome
+### Using headless Chrome
 
 As a very small replacement you can also start with headless Chrome browser. You won't need a separate Selenium installation in this case.
 
 Setting the capability "WEBDRIVERIO_START_CHROMEDRIVER" to true will make Botium start an integrated Chrome automatically (and stop it afterwards).
+
+**ATTENTION** The version of the included chromedriver in this repository may not match your installed version - the error output is something like this:
+
+    This version of ChromeDriver only supports Chrome version XX
+
+In this case you will either have to install the requested Chrome version, our have to update the chromedriver library to match your Chrome version. If you have Chrome 83.xxx installed, you can do this:
+
+    > npm install chromedriver@83
 
 ## Preparation Steps: Analyze Chatbot Widget
 
