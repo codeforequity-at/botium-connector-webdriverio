@@ -7,7 +7,9 @@
       "WEBDRIVERIO_PROFILE": "dialogflow_com",
       "WEBDRIVERIO_SCREENSHOTS": "onstop",
       "WEBDRIVERIO_START_CHROMEDRIVER": true,
-      "SCRIPTING_UTTEXPANSION_MODE": "first"
+      "WEBDRIVERIO_OPENBROWSER": "true",
+      "SCRIPTING_UTTEXPANSION_MODE": "first",
+      "SECURITY_ALLOW_UNSAFE": false
     }
   }
 }
