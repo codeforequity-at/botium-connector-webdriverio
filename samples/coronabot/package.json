@@ -1,5 +1,5 @@
 {
-  "name": "botbuilderwebchat",
+  "name": "coronabot",
   "version": "1.0.0",
   "scripts": {
     "crawler": "botium-crawler-cli crawler-run --config botium.json --numberOfWelcomeMessages 2 --output spec/crawler",

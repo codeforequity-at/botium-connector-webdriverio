@@ -15,12 +15,14 @@ const debug = require('debug')('botium-connector-webdriverio')
 const dialogflowComProfile = require('./profiles/dialogflow_com')
 const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
+const botbuilderWebchatV41Profile = require('./profiles/botbuilder_webchat_v4_10_0')
 const watsonpreviewProfile = require('./profiles/watsonpreview')
 
 const profiles = {
   dialogflow_com: dialogflowComProfile,
   botbuilder_webchat_v3: botbuilderWebchatV3Profile,
   botbuilder_webchat_v4: botbuilderWebchatV4Profile,
+  botbuilder_webchat_v4_10_0: botbuilderWebchatV41Profile,
   watsonpreview: watsonpreviewProfile
 }
 
@@ -681,10 +683,23 @@ class BotiumConnectorWebdriverIO {
 module.exports = {
   PluginVersion: 1,
   PluginClass: BotiumConnectorWebdriverIO,
-  Profiles: {
-    dialogflow_com: 'Google Dialogflow Web Demo',
-    botbuilder_webchat_v3: 'MS BotBuilder Webchat (v3)',
-    botbuilder_webchat_v4: 'MS BotBuilder Webchat (v4)',
-    watsonpreview: 'IBM Watson Assistant Preview Link'
+  PluginDesc: {
+    name: 'WebdriverIO (Selenium or Appium)',
+    provider: 'Selenium',
+    capabilities: [
+      {
+        name: 'WEBDRIVERIO_PROFILE',
+        label: 'Webdriver Script',
+        type: 'choice',
+        required: false,
+        choices: [
+          { name: 'Google Dialogflow Web Demo', key: 'dialogflow_com' },
+          { name: 'MS BotBuilder Webchat (v3)', key: 'botbuilder_webchat_v3' },
+          { name: 'MS BotBuilder Webchat (v4)', key: 'botbuilder_webchat_v4' },
+          { name: 'MS BotBuilder Webchat (v4.10.0)', key: 'botbuilder_webchat_v4_10_0' },
+          { name: 'IBM Watson Assistant Preview Link', key: 'watsonpreview' }
+        ]
+      }
+    ]
   }
 }
