@@ -12,6 +12,8 @@ const selenium = require('selenium-standalone')
 const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio')
 
+const { BotiumError, Capabilities: CoreCapabilities } = require('botium-core')
+
 const dialogflowComProfile = require('./profiles/dialogflow_com')
 const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
@@ -584,58 +586,70 @@ class BotiumConnectorWebdriverIO {
   }
 
   _loadFunction (capName, defaultFunction) {
-    if (this.caps[capName]) {
-      if (_.isFunction(this.caps[capName])) {
-        return this.caps[capName]
-      }
-      const loadErr = []
-
-      try {
-        const c = require(this.caps[capName])
-        if (_.isFunction(c)) {
-          debug(`Loaded Capability ${capName} function from NPM package ${this.caps[capName]}`)
-          return c
-        } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
-      } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
-      }
-
-      const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
-      try {
-        const c = require(tryLoadFile)
-        if (_.isFunction(c)) {
-          debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
-          return c
-        } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
-      } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
-      }
-
-      try {
-        esprima.parseScript(this.caps[capName])
-        debug(`Loaded Capability ${capName} function as javascript`)
-
-        return (container, browser) => {
-          const sandbox = {
-            container,
-            browser,
-            result: null,
-            debug,
-            console
-          }
-          vm.createContext(sandbox)
-          vm.runInContext(this.caps[capName], sandbox)
-          return sandbox.result || Promise.resolve()
-        }
-      } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
-      }
-
-      loadErr.forEach(d => debug(d))
-      throw new Error(`Failed to fetch Capability ${capName} function, no idea how to load ...`)
-    } else {
+    if (!this.caps[capName]) {
       return defaultFunction
     }
+
+    if (!this.caps[CoreCapabilities.SECURITY_ALLOW_UNSAFE]) {
+      throw new BotiumError(
+        `Security Error. Using ${capName} capability is not allowed`,
+        {
+          type: 'security',
+          subtype: 'allow unsafe',
+          source: 'botium-connector-webdriverio',
+          cause: { capName, cap: (_.isFunction(this.caps[capName]) ? '<function>' : this.caps[capName]) }
+        }
+      )
+    }
+
+    if (_.isFunction(this.caps[capName])) {
+      return this.caps[capName]
+    }
+    const loadErr = []
+
+    try {
+      const c = require(this.caps[capName])
+      if (_.isFunction(c)) {
+        debug(`Loaded Capability ${capName} function from NPM package ${this.caps[capName]}`)
+        return c
+      } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
+    } catch (err) {
+      loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
+    }
+
+    const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
+    try {
+      const c = require(tryLoadFile)
+      if (_.isFunction(c)) {
+        debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
+        return c
+      } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
+    } catch (err) {
+      loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
+    }
+
+    try {
+      esprima.parseScript(this.caps[capName])
+      debug(`Loaded Capability ${capName} function as javascript`)
+
+      return (container, browser) => {
+        const sandbox = {
+          container,
+          browser,
+          result: null,
+          debug,
+          console
+        }
+        vm.createContext(sandbox)
+        vm.runInContext(this.caps[capName], sandbox)
+        return sandbox.result || Promise.resolve()
+      }
+    } catch (err) {
+      loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
+    }
+
+    loadErr.forEach(d => debug(d))
+    throw new Error(`Failed to fetch Capability ${capName} function, no idea how to load ...`)
   }
 
   async _takeScreenshot (section) {
