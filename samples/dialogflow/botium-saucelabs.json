@@ -16,8 +16,9 @@
           "username": "xxx",
           "accessKey": "xxxxx"
         },
-        "host": "ondemand.saucelabs.com",
-        "port": 80
+        "protocol": "https",
+        "hostname": "ondemand.saucelabs.com",
+        "port": 443
       },
       "WEBDRIVERIO_PROFILE": "dialogflow_com",
       "WEBDRIVERIO_SCREENSHOTS": "onstop",

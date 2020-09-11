@@ -106,7 +106,7 @@ Setting the capability "WEBDRIVERIO_START_CHROMEDRIVER" to true will make Botium
 
 In this case you will either have to install the requested Chrome version, our have to update the chromedriver library to match your Chrome version. If you have Chrome 83.xxx installed, you can do this:
 
-    > npm install chromedriver@83
+    > npm install chromedriver@83 --no-save
 
 ## Preparation Steps: Analyze Chatbot Widget
 

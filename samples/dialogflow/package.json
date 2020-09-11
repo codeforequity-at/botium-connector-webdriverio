@@ -2,12 +2,13 @@
   "name": "dialogflow",
   "version": "1.0.0",
   "scripts": {
-    "test": "cross-env BOTIUM_CONFIG=botium-local.json mocha spec"
+    "test": "cross-env BOTIUM_CONFIG=botium-local.json mocha spec",
+    "test-saucelabs": "cross-env BOTIUM_CONFIG=botium-saucelabs.json mocha spec"
   },
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
-    "cross-env": "^7.0.1",
+    "cross-env": "^7.0.2",
     "mocha": "latest"
   },
   "botium": {
