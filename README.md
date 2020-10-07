@@ -159,17 +159,11 @@ Customization is done by injection Node.js-Code into Botium. The code to execute
 When placing code in a Javascript file, make sure to export exactly one function. The function has to return a Promise. The parameters handed over to the function are described below.
 
 ```
-module.exports = (container, browser) => {
- return browser.waitForVisible('.cc-btn', 20000)
- .click('.cc-btn')
- .pause(2000)
- .waitForVisible('#StartChat', 20000)
- .click('#StartChat')
- .waitForVisible('#chat', 10000)
- .waitForVisible('#textInput', 10000)
- .waitForVisible('.from-watson', 10000)
+module.exports = async (container, browser) => {
+  const startChat = await browser.$('#StartChat')
+  await startChat.waitForClickable({ timeout: 20000 })
+  await startChat.click()
 }
-
 ```
 
 ### Placing code in a capability as String
@@ -177,14 +171,11 @@ module.exports = (container, browser) => {
 When placing the code in a string capability, make sure to assign a Promise to the _result_ variable. The parameters handed over to the function are described below.
 
 ```
-result = browser.waitForVisible('.cc-btn', 20000)
- .click('.cc-btn')
- .pause(2000)
- .waitForVisible('#StartChat', 20000)
- .click('#StartChat')
- .waitForVisible('#chat', 10000)
- .waitForVisible('#textInput', 10000)
- .waitForVisible('.from-watson', 10000)
+result = (async () => {
+  const startChat = await browser.$('#StartChat')
+  await startChat.waitForClickable({ timeout: 20000 })
+  await startChat.click()
+})()
 ```
 
 The capabilities representing the extension points are:
