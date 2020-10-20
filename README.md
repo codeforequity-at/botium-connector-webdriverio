@@ -154,6 +154,8 @@ Customization is done by injection Node.js-Code into Botium. The code to execute
 * a _Javascript file name_ relative to the current working directory, which exports a single function (see below)
 * _Javascript code_ to be compiled and executed (see below)
 
+**See _botium.json_ in the _samples/custom_ folder for examples**
+
 ### Placing code in a Javascript file
 
 When placing code in a Javascript file, make sure to export exactly one function. The function has to return a Promise. The parameters handed over to the function are described below.
@@ -192,9 +194,10 @@ Extension function called with arguments: _container_, _browser_
 
 ### WEBDRIVERIO_OPENBOT
 Pre-defined behaviour:
+* If there are buttons configured (see _WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS_), click them one after the other
 * Waiting until the input text field is visible
 
-This has to be customized often - for example, to click away the typical "Cookie"-warning from a website, clicking on the chatbot button at the bottom right of the website, ...
+This has to be customized in most cases - for example, to click away the typical "Cookie"-warning from a website, clicking on the chatbot button at the bottom right of the website, ... In cases when it is not sufficient to click buttons (see _WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS_), it is possible to specify Javascript code.
 
 The _samples/custom_ folder has an example for this scenario.
 
@@ -343,6 +346,9 @@ Extension function to extract the message from the chatbot response element (see
 
 ### WEBDRIVERIO_SHADOW_ROOT
 The root element selector for chatbots hosted within a [Shadow DOM](https://wiki.selfhtml.org/wiki/HTML/Web_Components/Shadow_DOM)
+
+### WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS
+A list of [Webdriver selectors](https://webdriver.io/docs/selectors.html) for clickable elements which will be clicked one after the other to navigate to the actual chatbot widget.
 
 ### WEBDRIVERIO_INPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the input text field

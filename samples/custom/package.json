@@ -2,7 +2,7 @@
   "name": "custom",
   "version": "1.0.0",
   "scripts": {
-    "test": "cross-env BOTIUM_CONFIG=botium.json mocha spec",
+    "test": "mocha spec",
     "test-appium": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec",
     "test-perfecto": "cross-env BOTIUM_CONFIG=botium-perfectolabs.json mocha spec"
   },

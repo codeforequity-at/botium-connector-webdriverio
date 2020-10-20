@@ -1,7 +1,6 @@
 module.exports = (container, browser) => {
-  return browser.$('#StartChat')
-    .then(startChat => startChat.waitForClickable(20000).then(() => startChat.click()))
-    .then(() => browser.$('#chat').then(c => c.waitForDisplayed(10000)))
-    .then(() => browser.$('#textInput').then(t => t.waitForDisplayed(10000)))
-    .then(() => browser.$('.from-watson').then(f => f.waitForDisplayed(10000)))
+  return browser.$('#onetrust-accept-btn-handler')
+    .then(ccBtn => ccBtn.waitForClickable({ timeout: 20000 }).then(() => ccBtn.click()))
+    .then(() => browser.$('.troy__start-icon'))
+    .then(startChat => startChat.waitForClickable({ timeout: 20000 }).then(() => startChat.click()))
 }

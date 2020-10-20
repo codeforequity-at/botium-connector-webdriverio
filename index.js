@@ -42,6 +42,7 @@ const Capabilities = {
   WEBDRIVERIO_HTTPS_PROXY: 'WEBDRIVERIO_HTTPS_PROXY',
   WEBDRIVERIO_NO_PROXY: 'WEBDRIVERIO_NO_PROXY',
   WEBDRIVERIO_SHADOW_ROOT: 'WEBDRIVERIO_SHADOW_ROOT',
+  WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS: 'WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
@@ -100,11 +101,24 @@ const openBrowserDefault = async (container, browser) => {
 }
 
 const openBotDefault = async (container, browser) => {
+  if (container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS]) {
+    let clickSelectors = container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS]
+    if (_.isString(clickSelectors)) {
+      clickSelectors = [clickSelectors]
+    }
+    for (const [i, clickSelector] of clickSelectors.entries()) {
+      debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
+      const clickElement = await container.findElement(clickSelector)
+      await clickElement.waitForClickable({ timeout: 20000 })
+      await clickElement.click()
+    }
+  }
+
   const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
   const inputElement = await container.findElement(inputElementSelector)
-  await inputElement.waitForDisplayed(inputElementVisibleTimeout)
+  await inputElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
   debug(`Input element ${inputElementSelector} is visible`)
 }
 
@@ -128,18 +142,18 @@ const sendToBotDefault = async (container, browser, msg) => {
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
     const qrElement = await container.findElement(qrSelector)
-    await qrElement.waitForEnabled(inputElementVisibleTimeout)
+    await qrElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
     debug(`button ${qrSelector} is visible, simulating click`)
     await qrElement.click()
   } else {
     const inputElement = await container.findElement(inputElementSelector)
-    await inputElement.waitForEnabled(inputElementVisibleTimeout)
+    await inputElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
     debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}"`)
     if (inputElementSendButtonSelector) {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
       await inputElement.setValue([...msg.messageText])
       const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
-      await inputElementSendButton.waitForEnabled(inputElementVisibleTimeout)
+      await inputElementSendButton.waitForEnabled({ timeout: inputElementVisibleTimeout })
       debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
       await inputElementSendButton.click()
     } else {
@@ -245,6 +259,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
 
 class BotiumConnectorWebdriverIO {
   constructor ({ container, queueBotSays, eventEmitter, caps }) {
+    console.log('constructor', caps)
     this.container = container
     this.queueBotSays = queueBotSays
     this.eventEmitter = eventEmitter
@@ -377,7 +392,7 @@ class BotiumConnectorWebdriverIO {
 
       if (this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]) {
         const shadowRoot = await this.browser.$(this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT])
-        await shadowRoot.waitForDisplayed(10000)
+        await shadowRoot.waitForDisplayed({ timeout: 10000 })
         debug(`Using shadow root element ${this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]}`)
 
         this.findElement = (selector) => shadowRoot.shadow$(selector)
@@ -622,7 +637,10 @@ class BotiumConnectorWebdriverIO {
       const c = require(tryLoadFile)
       if (_.isFunction(c)) {
         debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
-        return c
+        return (...args) => {
+          debug(`Running ${capName} function from file ${tryLoadFile} ...`)
+          return c(...args)
+        }
       } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
     } catch (err) {
       loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
@@ -633,6 +651,7 @@ class BotiumConnectorWebdriverIO {
       debug(`Loaded Capability ${capName} function as javascript`)
 
       return (container, browser) => {
+        debug(`Running ${capName} function from inline javascript ...`)
         const sandbox = {
           container,
           browser,
