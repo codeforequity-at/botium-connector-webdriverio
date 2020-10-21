@@ -658,7 +658,7 @@ class BotiumConnectorWebdriverIO {
         })
         const r = vm.run(this.caps[capName])
         if (_.isFunction(r)) {
-          return fn(sandbox.container, sandbox.browser)
+          return r(sandbox.container, sandbox.browser)
         } else {
           return r
         }
