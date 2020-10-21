@@ -170,17 +170,29 @@ module.exports = async (container, browser) => {
 
 ### Placing code in a capability as String
 
-When placing the code in a string capability, make sure to assign a Promise to the _result_ variable. The parameters handed over to the function are described below.
+When placing the code in a string capability, make sure to return a Promise like this:
 
-```
-result = (async () => {
-  const startChat = await browser.$('#StartChat')
-  await startChat.waitForClickable({ timeout: 20000 })
-  await startChat.click()
-})()
-```
+    "WEBDRIVERIO_OPENBOT": "module.exports = container.findElement('.troy__start-icon')).then(startChat => startChat.waitForClickable({ timeout: 20000 }).then(() => startChat.click()))"
+
+Or use async/await like this:
+
+    "WEBDRIVERIO_OPENBOT": "module.exports = (async () => { const startChat = await container.findElement('#StartChat'); await startChat.waitForClickable({ timeout: 20000 }); await startChat.click();})()",
+
+The parameters handed over to the function (as global variables) are described below.
 
 The capabilities representing the extension points are:
+
+### Parameters
+
+**container**
+
+Has references to:
+* _container.caps_: the list of Botium capabilities. Use it like: _container.caps['MY_CAP_NAME']_
+* _container.findElement_ and _container.findElements_: mirror the Webdriver _$_- and _$$_-functions for finding HTML elements in the page, but also consider Shadow DOM
+
+**browser**
+
+The current Webdriver browser session
 
 ### WEBDRIVERIO_OPENBROWSER
 Pre-defined behaviour:

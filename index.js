@@ -1,5 +1,4 @@
 const util = require('util')
-const vm = require('vm')
 const path = require('path')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
@@ -10,6 +9,7 @@ const Queue = require('better-queue')
 const chromedriver = require('chromedriver')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
+const { NodeVM } = require('vm2')
 const debug = require('debug')('botium-connector-webdriverio')
 
 const { BotiumError, Capabilities: CoreCapabilities } = require('botium-core')
@@ -259,7 +259,6 @@ const getBotMessageDefault = async (container, browser, element, html) => {
 
 class BotiumConnectorWebdriverIO {
   constructor ({ container, queueBotSays, eventEmitter, caps }) {
-    console.log('constructor', caps)
     this.container = container
     this.queueBotSays = queueBotSays
     this.eventEmitter = eventEmitter
@@ -605,45 +604,37 @@ class BotiumConnectorWebdriverIO {
       return defaultFunction
     }
 
-    if (!this.caps[CoreCapabilities.SECURITY_ALLOW_UNSAFE]) {
-      throw new BotiumError(
-        `Security Error. Using ${capName} capability is not allowed`,
-        {
-          type: 'security',
-          subtype: 'allow unsafe',
-          source: 'botium-connector-webdriverio',
-          cause: { capName, cap: (_.isFunction(this.caps[capName]) ? '<function>' : this.caps[capName]) }
-        }
-      )
-    }
+    const allowUnsafe = !!this.caps[CoreCapabilities.SECURITY_ALLOW_UNSAFE]
 
-    if (_.isFunction(this.caps[capName])) {
-      return this.caps[capName]
-    }
     const loadErr = []
+    if (allowUnsafe) {
+      if (_.isFunction(this.caps[capName])) {
+        return this.caps[capName]
+      }
 
-    try {
-      const c = require(this.caps[capName])
-      if (_.isFunction(c)) {
-        debug(`Loaded Capability ${capName} function from NPM package ${this.caps[capName]}`)
-        return c
-      } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
-    } catch (err) {
-      loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
-    }
+      try {
+        const c = require(this.caps[capName])
+        if (_.isFunction(c)) {
+          debug(`Loaded Capability ${capName} function from NPM package ${this.caps[capName]}`)
+          return c
+        } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
+      } catch (err) {
+        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
+      }
 
-    const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
-    try {
-      const c = require(tryLoadFile)
-      if (_.isFunction(c)) {
-        debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
-        return (...args) => {
-          debug(`Running ${capName} function from file ${tryLoadFile} ...`)
-          return c(...args)
-        }
-      } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
-    } catch (err) {
-      loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
+      const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
+      try {
+        const c = require(tryLoadFile)
+        if (_.isFunction(c)) {
+          debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
+          return (...args) => {
+            debug(`Running ${capName} function from file ${tryLoadFile} ...`)
+            return c(...args)
+          }
+        } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
+      } catch (err) {
+        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
+      }
     }
 
     try {
@@ -653,22 +644,44 @@ class BotiumConnectorWebdriverIO {
       return (container, browser) => {
         debug(`Running ${capName} function from inline javascript ...`)
         const sandbox = {
-          container,
-          browser,
-          result: null,
-          debug,
-          console
+          container: {
+            caps: { ...container.caps },
+            findElement: (...args) => this.findElement(...args),
+            findElements: (...args) => this.findElements(...args)
+          },
+          browser
         }
-        vm.createContext(sandbox)
-        vm.runInContext(this.caps[capName], sandbox)
-        return sandbox.result || Promise.resolve()
+        const vm = new NodeVM({
+          eval: false,
+          require: false,
+          sandbox
+        })
+        const r = vm.run(this.caps[capName])
+        if (_.isFunction(r)) {
+          return fn(sandbox.container, sandbox.browser)
+        } else {
+          return r
+        }
       }
     } catch (err) {
       loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
     }
 
     loadErr.forEach(d => debug(d))
-    throw new Error(`Failed to fetch Capability ${capName} function, no idea how to load ...`)
+
+    if (!allowUnsafe) {
+      throw new BotiumError(
+        `Security Error. Using ${capName} capability is not allowed`,
+        {
+          type: 'security',
+          subtype: 'allow unsafe',
+          source: 'botium-connector-webdriverio',
+          cause: { capName, cap: (_.isFunction(this.caps[capName]) ? '<function>' : this.caps[capName]) }
+        }
+      )
+    } else {
+      throw new Error(`Failed to fetch Capability ${capName} function, no idea how to load ...`)
+    }
   }
 
   async _takeScreenshot (section) {

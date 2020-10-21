@@ -1,6 +1,6 @@
 {
   "name": "botium-connector-webdriverio",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Botium Connector for WebdriverIO scripts",
   "main": "dist/botium-connector-webdriverio-cjs.js",
   "module": "dist/botium-connector-webdriverio-es.js",
@@ -48,6 +48,7 @@
     "mime-types": "^2.1.27",
     "mustache": "^4.0.1",
     "selenium-standalone": "^6.19.0",
+    "vm2": "^3.9.2",
     "webdriverio": "^5.23.0"
   },
   "peerDependencies": {
