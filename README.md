@@ -504,9 +504,15 @@ Start the integrated Selenium server automatically.
 
 The options are handed over to Selenium-standalone 1:1 - see [here](https://github.com/vvo/selenium-standalone#example) for examples how to adapt it to your driver versions.
 
-### WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_CHROMEDRIVER_ARGS
+### WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_CHROMEDRIVER_ARGS/WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS
 _Default: false_
 
 _Default args: --port=4444 --url-base=wd/hub_
 
-Start the a headless Chrome browser automatically
+Start the a headless Chrome browser automatically with the given args (WEBDRIVERIO_START_CHROMEDRIVER_ARGS). Use the WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS capability to add an additional arg to the default args
+
+### WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS/WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS
+_Default: ['--headless', '--no-sandbox', '--disable-gpu']_
+
+Set the options args for chromedriver (WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS). Use the WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS capability to add an additional option arg to the default option args
+

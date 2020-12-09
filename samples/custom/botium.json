@@ -17,7 +17,10 @@
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "HASH",
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR": "./div[contains(@class,'message-inner')]/div[contains(@class,'text')]",
       "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
-      "WEBDRIVERIO_START_CHROMEDRIVER": true
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "__WEBDRIVERIO_HTTP_PROXY": "http://127.0.0.1:8080",
+      "__WEBDRIVERIO_HTTPS_PROXY": "http://127.0.0.1:8080",
+      "__WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS": "--ignore-certificate-errors"
     }
   }
 }

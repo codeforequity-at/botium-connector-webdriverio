@@ -70,7 +70,10 @@ const Capabilities = {
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
   WEBDRIVERIO_START_SELENIUM_OPTS: 'WEBDRIVERIO_START_SELENIUM_OPTS',
   WEBDRIVERIO_START_CHROMEDRIVER: 'WEBDRIVERIO_START_CHROMEDRIVER',
-  WEBDRIVERIO_START_CHROMEDRIVER_ARGS: 'WEBDRIVERIO_START_CHROMEDRIVER_ARGS'
+  WEBDRIVERIO_START_CHROMEDRIVER_ARGS: 'WEBDRIVERIO_START_CHROMEDRIVER_ARGS',
+  WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS: 'WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS',
+  WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS: 'WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS',
+  WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS: 'WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS'
 }
 
 const openBrowserDefault = async (container, browser) => {
@@ -313,6 +316,13 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
       this.chromePort = Math.floor(Math.random() * 10000 + 40000)
       const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || [`--port=${this.chromePort}`, '--url-base=wd/hub']
+      if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]) {
+        let addArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]
+        if (_.isString(addArgs)) {
+          addArgs = addArgs.split(' ')
+        }
+        addArgs.forEach(a => chromeArgs.push(a))
+      }
       debug(`Starting Chrome with args: ${chromeArgs}`)
       await chromedriver.start(chromeArgs, true)
     } else if (this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
@@ -356,6 +366,14 @@ class BotiumConnectorWebdriverIO {
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
+        const chromeOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS] || ['--headless', '--no-sandbox', '--disable-gpu']
+        if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS]) {
+          let addOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS]
+          if (_.isString(addOptionsArgs)) {
+            addOptionsArgs = addOptionsArgs.split(' ')
+          }
+          addOptionsArgs.forEach(a => chromeOptionsArgs.push(a))
+        }
         options.protocol = 'http'
         options.hostname = '127.0.0.1'
         options.port = this.chromePort
@@ -363,7 +381,7 @@ class BotiumConnectorWebdriverIO {
         options.capabilities = Object.assign({
           browserName: 'chrome',
           'goog:chromeOptions': {
-            args: ['--headless', '--no-sandbox', '--disable-gpu']
+            args: chromeOptionsArgs
           }
         }, options.capabilities || {})
       }
