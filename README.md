@@ -315,12 +315,14 @@ The [Webdriver.io](https://webdriver.io/docs/options.html)-Options (see above)
 ### WEBDRIVERIO_URL
 The url to open in the browser
 
-  WEBDRIVERIO_APP: 'WEBDRIVERIO_APP',
-  WEBDRIVERIO_APPPACKAGE: 'WEBDRIVERIO_APPPACKAGE',
-  WEBDRIVERIO_APPACTIVITY: 'WEBDRIVERIO_APPACTIVITY',
-  WEBDRIVERIO_APPNORESET: 'WEBDRIVERIO_APPNORESET',
- 
+### WEBDRIVERIO_APP
+The app to install. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
 
+### WEBDRIVERIO_APPPACKAGE / WEBDRIVERIO_APPACTIVITY
+The app package and activity to test. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
+
+### WEBDRIVERIO_APPNORESET
+Reset app state before testing. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
 
 ### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
 HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).
