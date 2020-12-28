@@ -1,0 +1,22 @@
+{
+  "name": "appium",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "mocha spec",
+    "test-saucelabs": "cross-env BOTIUM_CONFIG=botium-saucelabs.json mocha spec",
+    "test-testobjects": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec"
+  },
+  "devDependencies": {
+    "botium-bindings": "latest",
+    "botium-connector-webdriverio": "../../",
+    "cross-env": "latest",
+    "mocha": "latest"
+  },
+  "botium": {
+    "convodirs": [
+      "spec/convo"
+    ],
+    "expandConvos": true,
+    "expandUtterancesToConvos": false
+  }
+}

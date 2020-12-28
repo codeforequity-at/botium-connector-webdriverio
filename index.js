@@ -19,18 +19,24 @@ const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
 const botbuilderWebchatV41Profile = require('./profiles/botbuilder_webchat_v4_10_0')
 const watsonpreviewProfile = require('./profiles/watsonpreview')
+const whatsappProfile = require('./profiles/whatsapp')
 
 const profiles = {
   dialogflow_com: dialogflowComProfile,
   botbuilder_webchat_v3: botbuilderWebchatV3Profile,
   botbuilder_webchat_v4: botbuilderWebchatV4Profile,
   botbuilder_webchat_v4_10_0: botbuilderWebchatV41Profile,
-  watsonpreview: watsonpreviewProfile
+  watsonpreview: watsonpreviewProfile,
+  whatsapp: whatsappProfile
 }
 
 const Capabilities = {
   WEBDRIVERIO_OPTIONS: 'WEBDRIVERIO_OPTIONS',
   WEBDRIVERIO_URL: 'WEBDRIVERIO_URL',
+  WEBDRIVERIO_APP: 'WEBDRIVERIO_APP',
+  WEBDRIVERIO_APPPACKAGE: 'WEBDRIVERIO_APPPACKAGE',
+  WEBDRIVERIO_APPACTIVITY: 'WEBDRIVERIO_APPACTIVITY',
+  WEBDRIVERIO_APPNORESET: 'WEBDRIVERIO_APPNORESET',
   WEBDRIVERIO_PROFILE: 'WEBDRIVERIO_PROFILE',
   WEBDRIVERIO_OPENBROWSER: 'WEBDRIVERIO_OPENBROWSER',
   WEBDRIVERIO_OPENBOT: 'WEBDRIVERIO_OPENBOT',
@@ -64,6 +70,8 @@ const Capabilities = {
   WEBDRIVERIO_IGNOREEMPTYMESSAGES: 'WEBDRIVERIO_IGNOREEMPTYMESSAGES',
   WEBDRIVERIO_USERNAME: 'WEBDRIVERIO_USERNAME',
   WEBDRIVERIO_PASSWORD: 'WEBDRIVERIO_PASSWORD',
+  WEBDRIVERIO_CONTACT: 'WEBDRIVERIO_CONTACT',
+  WEBDRIVERIO_LANGUAGE: 'WEBDRIVERIO_LANGUAGE',
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
   WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE',
   WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
@@ -78,6 +86,7 @@ const Capabilities = {
 
 const openBrowserDefault = async (container, browser) => {
   const url = container.caps[Capabilities.WEBDRIVERIO_URL]
+  if (!url) return
 
   await browser.url(url)
   const title = await browser.getTitle()
@@ -276,11 +285,15 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[Capabilities.WEBDRIVERIO_PROFILE]) {
       const profile = profiles[this.caps[Capabilities.WEBDRIVERIO_PROFILE]]
       if (!profile) throw new Error('WEBDRIVERIO_PROFILE capability invalid')
+
+      if (profile.VALIDATE) {
+        await profile.VALIDATE(this)
+        delete profile.VALIDATE
+      }
       this.caps = Object.assign(this.caps, profile)
     }
 
     if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
-    if (!this.caps[Capabilities.WEBDRIVERIO_URL] && !this.caps[Capabilities.WEBDRIVERIO_OPENBROWSER]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_OPENBROWSER or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
@@ -361,9 +374,16 @@ class BotiumConnectorWebdriverIO {
       await this._stopBrowser()
 
       const options = this.caps[Capabilities.WEBDRIVERIO_OPTIONS] || {}
+      options.capabilities = options.capabilities || {}
       if (!options.logLevel) {
         options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }
+
+      if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities.app = this.caps[Capabilities.WEBDRIVERIO_APP]
+      if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) options.capabilities.appPackage = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
+      if (this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) options.capabilities.appActivity = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
+      if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities.noReset = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
+      if (!options.capabilities.automationName) options.capabilities.automationName = 'UiAutomator2'
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
         const chromeOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS] || ['--headless', '--no-sandbox', '--disable-gpu']
@@ -383,7 +403,7 @@ class BotiumConnectorWebdriverIO {
           'goog:chromeOptions': {
             args: chromeOptionsArgs
           }
-        }, options.capabilities || {})
+        }, options.capabilities)
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_HTTP_PROXY] || this.caps[Capabilities.WEBDRIVERIO_HTTPS_PROXY]) {
@@ -548,12 +568,24 @@ class BotiumConnectorWebdriverIO {
   async _handleNewElements () {
     try {
       const r = await this.receiveFromBot(this, this.browser)
-      for (const element of (r || [])) {
+      for (const [index, element] of (r || []).entries()) {
+        let html = null
         try {
-          const html = await element.getHTML()
+          html = await element.getHTML()
+        } catch (err) {
+        }
+        if (!html) {
+          try {
+            html = await this.browser.getPageSource()
+          } catch (err) {
+          }
+        }
 
+        try {
           let hashKey
-          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
+          if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'INDEX') {
+            hashKey = `${index}`
+          } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
             if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
               hashKey = await element.getAttribute(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE])
             } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
@@ -761,7 +793,8 @@ module.exports = {
           { name: 'MS BotBuilder Webchat (v3)', key: 'botbuilder_webchat_v3' },
           { name: 'MS BotBuilder Webchat (v4)', key: 'botbuilder_webchat_v4' },
           { name: 'MS BotBuilder Webchat (v4.10.0)', key: 'botbuilder_webchat_v4_10_0' },
-          { name: 'IBM Watson Assistant Preview Link', key: 'watsonpreview' }
+          { name: 'IBM Watson Assistant Preview Link', key: 'watsonpreview' },
+          { name: 'Whatsapp', key: 'whatsapp' }
         ]
       }
     ]

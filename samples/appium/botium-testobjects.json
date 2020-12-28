@@ -1,0 +1,19 @@
+{
+  "botium": {
+    "Capabilities": {
+      "WEBDRIVERIO_OPTIONS": {	
+				"capabilities": {
+          "deviceName": "Samsung Galaxy J5",
+          "platformName": "Android",
+          "platformVersion": "6",
+          "username": "xxx",
+          "accessKey": "xxx"
+        },
+        "protocol": "https",
+        "hostname": "ondemand.us-west-1.saucelabs.com",
+        "port": 443,
+        "path": "/wd/hub"
+      }
+    }
+  }
+}

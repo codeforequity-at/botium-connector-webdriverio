@@ -1,0 +1,19 @@
+{
+  "name": "whatsapp",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "mocha spec"
+  },
+  "devDependencies": {
+    "botium-bindings": "latest",
+    "botium-connector-webdriverio": "../../",
+    "mocha": "latest"
+  },
+  "botium": {
+    "convodirs": [
+      "spec/convo"
+    ],
+    "expandConvos": true,
+    "expandUtterancesToConvos": false
+  }
+}
