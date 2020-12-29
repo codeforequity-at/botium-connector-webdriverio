@@ -128,9 +128,12 @@ For some common chatbot widgets and websites, Botium provides out-of-the-box Sel
 
 ### botbuilder_webchat_(version) - Microsoft Bot Framework Webchat
 For chatbots published with the [Bot Framework Webchat Widget](https://github.com/Microsoft/BotFramework-WebChat). Point the capability _WEBDRIVERIO_URL_ to the full URL of the website where the widget is embedded.
+
 Currently supported:
+
 * botbuilder_webchat_v3
 * botbuilder_webchat_v4
+* botbuilder_webchat_v4_10_0
 
 ### dialogflow_com - Dialogflow Web Demo Chatbot
 For chatbots published as Dialogflow "Web Demo". Point the capability _WEBDRIVERIO_URL_ to the full URL of the embedded Dialogflow Web Demo (for example: "https://console.dialogflow.com/api-client/demo/embedded/d388ac41-5c60-483f-b89b-0ec0d99d848d").
@@ -138,11 +141,13 @@ For chatbots published as Dialogflow "Web Demo". Point the capability _WEBDRIVER
 ### watsonpreview - IBM Watson Assistant Preview Link
 For Watson Assistant chatbots published as [Preview Link](https://cloud.ibm.com/docs/services/assistant?topic=assistant-deploy-web-link). Point the capability _WEBDRIVERIO_URL_ to the full URL of the chatbot page (for example: "https://assistant-chat-eu-de.watsonplatform.net/web/public/xxxxxxx").
 
-### messenger_com - Facebook Messenger Chatbot (experimental)
-For chatbots published in [Facebook Messenger](https://www.messenger.com).
+### whatsapp - Whatsapp
+Whatsapp is started via Appium, a contact is opened, the chat history with this contact is cleared and the conversation is run.
 
-* Point the capability _WEBDRIVERIO_URL_ to the full URL of the chatbot page (for example: "https://www.messenger.com/t/1271293572983985").
-* Additionally, set the capabilities _WEBDRIVERIO_USERNAME_ and _WEBDRIVERIO_PASSWORD_ to your Facebook credentials
+Some caveats:
+* Whatsapp has to be already installed end registered on the phone. When using device cloud providers, this is only possible with a private device cloud.
+* The contact name of the bot has to be configured (*WEBDRIVERIO_CONTACT*) and a first conversation has to be done manually to make it visible in the conversations view of Whatsapp.
+* The language of the Whatsapp app has to be configured (*WEBDRIVERIO_LANGUAGE*) for naming the menu items. See *profiles/whatsapp.js*.
 
 ## Customize pre-defined Selenium Scripts
 While the pre-defined Selenium scripts make reasonable assumptions, it is not unusual that your chatbot widget and your website has some very special behaviour to address. In those cases, there are some Selenium- and Node.js-Coding skills required.
@@ -310,6 +315,15 @@ The [Webdriver.io](https://webdriver.io/docs/options.html)-Options (see above)
 ### WEBDRIVERIO_URL
 The url to open in the browser
 
+### WEBDRIVERIO_APP
+The app to install. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
+
+### WEBDRIVERIO_APPPACKAGE / WEBDRIVERIO_APPACTIVITY
+The app package and activity to test. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
+
+### WEBDRIVERIO_APPNORESET
+Reset app state before testing. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
+
 ### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
 HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).
 
@@ -430,6 +444,7 @@ Possible values:
 
 * ELEMENTID - use the Webdriver element identifier
 * HASH - use the HTML output as identifier
+* INDEX - use the position in the output DOM as identifier
 * TEXT - use the displayed text as identifier
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR
@@ -483,7 +498,13 @@ _Default: false_
 If set, all recognized messages with don't include a text, buttons or media files are ignored. This is for ignoring messages without any content, for example a placeholder for a "Bot is typing" visualization.
 
 ### WEBDRIVERIO_USERNAME and WEBDRIVERIO_PASSWORD
-Login data if required - _messenger_com_-profile requires Facebook login.
+Login data if required
+
+### WEBDRIVERIO_CONTACT
+Name of the contact if required (for example, in Whatsapp)
+
+### WEBDRIVERIO_LANGUAGE
+Language of the app if required (for example, to set the Whatsapp language)
 
 ### WEBDRIVERIO_SCREENSHOTS
 _Default: none_

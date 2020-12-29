@@ -1,0 +1,20 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Whatsapp Sample",
+      "CONTAINERMODE": "webdriverio",
+      "CLEANUPTEMPDIR": false,
+      "WEBDRIVERIO_OPTIONS": {
+				"capabilities": {
+          "platformName": "Android"
+        },
+        "port": 4723,
+        "path": "/wd/hub"
+      },
+      "WEBDRIVERIO_PROFILE": "whatsapp",
+      "WEBDRIVERIO_CONTACT": "World Health Organization",
+      "WEBDRIVERIO_LANGUAGE": "de",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": false
+    }
+  }
+}
