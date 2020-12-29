@@ -294,6 +294,8 @@ class BotiumConnectorWebdriverIO {
     }
 
     if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
+    if (this.caps[Capabilities.WEBDRIVERIO_URL] && this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_APPPACKAGE capability cannot be used together')
+    if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE] && !this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) throw new Error('WEBDRIVERIO_APPACTIVITY capability required for WEBDRIVERIO_APPPACKAGE')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
@@ -379,11 +381,14 @@ class BotiumConnectorWebdriverIO {
         options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }
 
-      if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities.app = this.caps[Capabilities.WEBDRIVERIO_APP]
-      if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) options.capabilities.appPackage = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
-      if (this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) options.capabilities.appActivity = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
-      if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities.noReset = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
-      if (!options.capabilities.automationName) options.capabilities.automationName = 'UiAutomator2'
+      if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) {
+        options.capabilities.appPackage = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
+        options.capabilities.appActivity = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
+        if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities.app = this.caps[Capabilities.WEBDRIVERIO_APP]
+        if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities.noReset = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
+        if (!options.capabilities.noReset) options.capabilities.autoGrantPermissions = true
+        if (!options.capabilities.automationName) options.capabilities.automationName = 'UiAutomator2'
+      }
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
         const chromeOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS] || ['--headless', '--no-sandbox', '--disable-gpu']
