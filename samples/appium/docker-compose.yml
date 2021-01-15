@@ -1,0 +1,30 @@
+version: "3"
+services:
+  selenium-hub:
+    image: selenium/hub:latest
+    container_name: selenium-hub
+    ports:
+      - "4444:4444"
+  chrome:
+    image: selenium/node-chrome:latest
+    depends_on:
+      - selenium-hub
+    environment:
+      - HUB_HOST=selenium-hub
+      - HUB_PORT=4444
+  samsung_galaxy_S8:
+    image: budtmo/docker-android-x86-11.0
+    privileged: true
+    depends_on:
+      - selenium-hub
+    ports:
+      - "6080:6080"
+    environment:
+      - DEVICE=Samsung Galaxy S8
+      - CONNECT_TO_GRID=true
+      - APPIUM=true
+      - SELENIUM_HOST=selenium-hub
+      - SELENIUM_PORT=4444
+      - MOBILE_WEB_TEST=false
+      - AUTO_RECORD=false
+
