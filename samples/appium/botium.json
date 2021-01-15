@@ -3,6 +3,7 @@
     "Capabilities": {
       "PROJECTNAME": "WebdriverIO Appium Sample",
       "CONTAINERMODE": "webdriverio",
+      "WAITFORBOTTIMEOUT": 60000,
       "CLEANUPTEMPDIR": false,
       "WEBDRIVERIO_OPTIONS": {
 				"capabilities": {

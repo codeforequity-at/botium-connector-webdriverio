@@ -382,12 +382,12 @@ class BotiumConnectorWebdriverIO {
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) {
-        options.capabilities.appPackage = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
-        options.capabilities.appActivity = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
-        if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities.app = this.caps[Capabilities.WEBDRIVERIO_APP]
-        if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities.noReset = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
-        if (!options.capabilities.noReset) options.capabilities.autoGrantPermissions = true
-        if (!options.capabilities.automationName) options.capabilities.automationName = 'UiAutomator2'
+        options.capabilities['appium:appPackage'] = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
+        options.capabilities['appium:appActivity'] = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
+        if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities['appium:app'] = this.caps[Capabilities.WEBDRIVERIO_APP]
+        if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities['appium:noReset'] = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
+        if (!options.capabilities.noReset) options.capabilities['appium:autoGrantPermissions'] = true
+        if (!options.capabilities.automationName) options.capabilities['appium:automationName'] = 'UiAutomator2'
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
