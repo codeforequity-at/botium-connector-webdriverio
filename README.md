@@ -324,6 +324,10 @@ The app package and activity to test. See [Appium documentation](http://appium.i
 ### WEBDRIVERIO_APPNORESET
 Reset app state before testing. See [Appium documentation](http://appium.io/docs/en/writing-running-appium/caps/)
 
+### WEBDRIVERIO_USE_APPIUM_PREFIX
+Depending on the Selenium infrastructure an "appium:" prefix for the Appium-specific capabilities might be required.
+Check the documentation of your device cloud provider or your Selenium grid.
+
 ### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
 HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).
 
