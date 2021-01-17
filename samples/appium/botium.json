@@ -15,6 +15,7 @@
       "WEBDRIVERIO_APP": "https://github.com/Hariofspades/ChatBot/raw/master/app/hari-bot.apk",
       "WEBDRIVERIO_APPPACKAGE": "com.hariofspades.chatbot",
       "WEBDRIVERIO_APPACTIVITY": "com.hariofspades.chatbot.MainActivity",
+      "WEBDRIVERIO_USE_APPIUM_PREFIX": "appium:",
       "WEBDRIVERIO_INPUT_ELEMENT": "//*[@resource-id=\"com.hariofspades.chatbot:id/et_message\"]",
       "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": "//*[@resource-id=\"com.hariofspades.chatbot:id/btn_send\"]",
       "WEBDRIVERIO_OUTPUT_ELEMENT": "//*[@resource-id=\"com.hariofspades.chatbot:id/chatMessageView\" and name(./*[1])=\"android.widget.ImageView\"]",

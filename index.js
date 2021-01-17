@@ -37,6 +37,7 @@ const Capabilities = {
   WEBDRIVERIO_APPPACKAGE: 'WEBDRIVERIO_APPPACKAGE',
   WEBDRIVERIO_APPACTIVITY: 'WEBDRIVERIO_APPACTIVITY',
   WEBDRIVERIO_APPNORESET: 'WEBDRIVERIO_APPNORESET',
+  WEBDRIVERIO_USE_APPIUM_PREFIX: 'WEBDRIVERIO_USE_APPIUM_PREFIX',
   WEBDRIVERIO_PROFILE: 'WEBDRIVERIO_PROFILE',
   WEBDRIVERIO_OPENBROWSER: 'WEBDRIVERIO_OPENBROWSER',
   WEBDRIVERIO_OPENBOT: 'WEBDRIVERIO_OPENBOT',
@@ -382,12 +383,13 @@ class BotiumConnectorWebdriverIO {
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) {
-        options.capabilities['appium:appPackage'] = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
-        options.capabilities['appium:appActivity'] = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
-        if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities['appium:app'] = this.caps[Capabilities.WEBDRIVERIO_APP]
-        if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities['appium:noReset'] = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
-        if (!options.capabilities.noReset) options.capabilities['appium:autoGrantPermissions'] = true
-        if (!options.capabilities.automationName) options.capabilities['appium:automationName'] = 'UiAutomator2'
+        const prefix = this.caps[Capabilities.WEBDRIVERIO_USE_APPIUM_PREFIX] || ''
+        options.capabilities[`${prefix}appPackage`] = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
+        options.capabilities[`${prefix}appActivity`] = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
+        if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities[`${prefix}app`] = this.caps[Capabilities.WEBDRIVERIO_APP]
+        if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities[`${prefix}noReset`] = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
+        if (!options.capabilities.noReset) options.capabilities[`${prefix}autoGrantPermissions`] = true
+        if (!options.capabilities.automationName) options.capabilities[`${prefix}automationName`] = 'UiAutomator2'
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
