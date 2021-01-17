@@ -13,7 +13,8 @@
         "hostname": "ondemand.us-west-1.saucelabs.com",
         "port": 443,
         "path": "/wd/hub"
-      }
+      },
+      "WEBDRIVERIO_USE_APPIUM_PREFIX": ""
     }
   }
 }
