@@ -791,8 +791,8 @@ module.exports = {
     provider: 'Selenium',
     capabilities: [
       {
-        name: 'WEBDRIVERIO_PROFILE',
-        label: 'Webdriver Script',
+        name: 'WEBDRIVERIO_PROFILE_SELENIUM',
+        label: 'Selenium Script',
         type: 'choice',
         required: false,
         choices: [
@@ -800,8 +800,26 @@ module.exports = {
           { name: 'MS BotBuilder Webchat (v3)', key: 'botbuilder_webchat_v3' },
           { name: 'MS BotBuilder Webchat (v4)', key: 'botbuilder_webchat_v4' },
           { name: 'MS BotBuilder Webchat (v4.10.0)', key: 'botbuilder_webchat_v4_10_0' },
-          { name: 'IBM Watson Assistant Preview Link', key: 'watsonpreview' },
+          { name: 'IBM Watson Assistant Preview Link', key: 'watsonpreview' }
+        ]
+      },
+      {
+        name: 'WEBDRIVERIO_PROFILE_APPIUM',
+        label: 'Appium Script',
+        type: 'choice',
+        required: false,
+        choices: [
           { name: 'Whatsapp', key: 'whatsapp' }
+        ]
+      },
+      {
+        name: 'WEBDRIVERIO_LANGUAGE',
+        label: 'Whatsapp Language',
+        type: 'choice',
+        required: false,
+        choices: [
+          { name: 'German', key: 'de' },
+          { name: 'English', key: 'en' }
         ]
       }
     ]
