@@ -1,0 +1,27 @@
+{
+  "botium": {
+    "Capabilities": {
+      "WEBDRIVERIO_OPTIONS": {	
+				"capabilities": {
+          "automationName": "Appium",
+          "model": "Galaxy S5",
+          "securityToken": "..."
+        },
+        "protocol": "https",
+        "hostname": "partners.perfectomobile.com",
+        "port": 443,
+        "path": "/nexperience/perfectomobile/wd/hub"
+      },
+      "WAITFORBOTTIMEOUT": 30000,
+      "WEBDRIVERIO_START_CHROMEDRIVER": false,
+      "WEBDRIVERIO_USE_APPIUM_PREFIX": "",
+      "LOGIC_HOOKS": [
+        {
+          "ref": "PERFECTO-REPORTING",
+          "src": "botium-logichook-perfectoreporting",
+          "global": true
+        }
+      ]      
+    }
+  }
+}

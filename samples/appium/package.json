@@ -4,11 +4,13 @@
   "scripts": {
     "test": "mocha spec",
     "test-saucelabs": "cross-env BOTIUM_CONFIG=botium-saucelabs.json mocha spec",
-    "test-testobjects": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec"
+    "test-testobjects": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec",
+    "test-perfectolabs": "cross-env BOTIUM_CONFIG=botium-perfectolabs.json mocha spec"
   },
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
+    "botium-logichook-perfectoreporting": "latest",
     "cross-env": "latest",
     "mocha": "latest"
   },
