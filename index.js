@@ -74,6 +74,7 @@ const Capabilities = {
   WEBDRIVERIO_CONTACT: 'WEBDRIVERIO_CONTACT',
   WEBDRIVERIO_LANGUAGE: 'WEBDRIVERIO_LANGUAGE',
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
+  WEBDRIVERIO_RECORDING: 'WEBDRIVERIO_RECORDING',
   WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE',
   WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
@@ -432,6 +433,9 @@ class BotiumConnectorWebdriverIO {
       this.browser = await webdriverio.remote(options)
       if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
+      if (this.caps[Capabilities.WEBDRIVERIO_RECORDING]) {
+        await this.browser.startRecordingScreen({ forceRestart: true })
+      }
       await this.openBrowser(this, this.browser)
 
       if (this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]) {
@@ -539,6 +543,10 @@ class BotiumConnectorWebdriverIO {
         const screenshot = await this._takeScreenshot('onstop')
         if (screenshot) {
           this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+        }
+        if (this.caps[Capabilities.WEBDRIVERIO_RECORDING]) {
+          await this._saveRecording()
+          await this.browser.stopRecordingScreen()
         }
       })
     }
@@ -780,6 +788,20 @@ class BotiumConnectorWebdriverIO {
       this.screenshotCounterBySection[section] = 1
     }
     return this.screenshotCounterBySection[section]
+  }
+
+  async _saveRecording () {
+    if (this.browser) {
+      try {
+        const filename = path.resolve(this.container.tempDirectory, 'recording.mp4')
+        await this.browser.saveRecordingScreen(filename)
+        debug(`Saved recording to ${filename}`)
+      } catch (err) {
+        debug(`Failed to save recording: ${err.message || util.inspect(err)}`)
+      }
+    } else {
+      debug('Failed to save recording - browser already closed')
+    }
   }
 }
 
