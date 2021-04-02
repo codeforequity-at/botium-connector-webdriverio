@@ -122,7 +122,11 @@ const openBotDefault = async (container, browser) => {
     for (const [i, clickSelector] of clickSelectors.entries()) {
       debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
       const clickElement = await container.findElement(clickSelector)
-      await clickElement.waitForClickable({ timeout: 20000 })
+      await clickElement.waitForClickable({
+        timeout: 20000,
+        altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
+        browser
+      })
       await clickElement.click()
     }
   }
@@ -433,6 +437,20 @@ class BotiumConnectorWebdriverIO {
       if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
       await this.openBrowser(this, this.browser)
+
+      // overwrite waitForClickable function for appium support
+      this.browser.overwriteCommand('waitForClickable', async (origFunction, params) => {
+        try {
+          debug('trying original waitForClickable function')
+          await origFunction(params)
+        } catch (err) {
+          debug('trying alternative waitForClickable function')
+          if (err.message.includes('implemented') || err.message.includes('supported')) {
+            return params.browser.waitUntil(params.altFunc, params)
+          }
+          throw err
+        }
+      }, true)
 
       if (this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]) {
         const shadowRoot = await this.browser.$(this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT])
