@@ -407,6 +407,9 @@ For example, if you want to select the button to click based on the _title_ attr
 
 _button[title*='{button.text}']_
 
+### WEBDRIVERIO_INPUTPAUSE
+In some situations it might be required after a user input to wait for a short amount of time to wait for the user interface. In this case you can use this capability to specify an amount of milliseconds to pause execution shortly.
+
 ### WEBDRIVERIO_OUTPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the chatbot output elements
 

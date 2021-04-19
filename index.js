@@ -54,6 +54,7 @@ const Capabilities = {
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
   WEBDRIVERIO_INPUT_ELEMENT_BUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_BUTTON',
+  WEBDRIVERIO_INPUTPAUSE: 'WEBDRIVERIO_INPUTPAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT',
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED',
@@ -186,35 +187,38 @@ const receiveFromBotDefault = async (container, browser) => {
   return r
 }
 
+const _isNested = (container, capName, def) => {
+  if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
+  return !!container.caps[capName]
+}
+
+const _getTextFromElement = async (container, browser, element) => {
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
+    if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
+      const textElement = await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      if (textElement) {
+        return textElement.getText()
+      }
+    } else {
+      const textElement = await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
+      if (textElement) {
+        return textElement.getText()
+      }
+    }
+  } else {
+    return element.getText()
+  }
+}
+
 const urlRegexp = /(http|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:/~+#-]*[\w@?^=%&amp;/~+#-])?/
 const getBotMessageDefault = async (container, browser, element, html) => {
   debug(`getBotMessageDefault receiving text for element ${element.ELEMENT || element.elementId}`)
 
   const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId, html } }
-
-  const isNested = (capName, def) => {
-    if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
-    return !!container.caps[capName]
-  }
-
-  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
-    if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
-      const textElement = await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
-      if (textElement) {
-        botMsg.messageText = await textElement.getText()
-      }
-    } else {
-      const textElement = await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
-      if (textElement) {
-        botMsg.messageText = await textElement.getText()
-      }
-    }
-  } else {
-    botMsg.messageText = await element.getText()
-  }
+  botMsg.messageText = await _getTextFromElement(container, browser, element)
 
   let buttonElements
-  if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
+  if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
     buttonElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   } else {
     buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
@@ -252,7 +256,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   }
 
   let mediaElements
-  if (isNested(Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
+  if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
     mediaElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
   } else {
     mediaElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
@@ -444,8 +448,8 @@ class BotiumConnectorWebdriverIO {
           debug('trying original waitForClickable function')
           await origFunction(params)
         } catch (err) {
-          debug('trying alternative waitForClickable function')
           if (err.message.includes('implemented') || err.message.includes('supported')) {
+            debug('trying alternative waitForClickable function')
             return params.browser.waitUntil(params.altFunc, params)
           }
           throw err
@@ -519,6 +523,11 @@ class BotiumConnectorWebdriverIO {
         throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
       } finally {
         if (debug.enabled) await this._saveDebugScreenshot('usersays')
+      }
+      const inputPause = this.caps[Capabilities.WEBDRIVERIO_INPUTPAUSE]
+      if (inputPause && inputPause > 0) {
+        debug(`Pausing after input for ${inputPause}ms`)
+        await new Promise((resolve) => setTimeout(resolve, inputPause))
       }
     })
   }
@@ -623,7 +632,8 @@ class BotiumConnectorWebdriverIO {
               continue
             }
           } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'TEXT') {
-            hashKey = await element.getText()
+            hashKey = await _getTextFromElement(this, this.browser, element)
+            hashKey = crypto.createHash('md5').update(hashKey).digest('hex')
           } else {
             hashKey = `${element.ELEMENT || element.elementId}`
           }

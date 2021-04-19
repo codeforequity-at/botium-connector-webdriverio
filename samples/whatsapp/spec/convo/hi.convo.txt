@@ -4,4 +4,16 @@ hi
 hi
 
 #bot
-Welcome to the World Health Organization
+WELCOME TO HEALTH ALERT
+
+#me
+ALERT
+
+#bot
+You are not signed up to receive alerts.
+
+#me
+0
+
+#bot
+WELCOME TO HEALTH ALERT
