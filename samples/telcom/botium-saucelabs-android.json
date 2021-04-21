@@ -1,0 +1,22 @@
+{
+  "botium": {
+    "Capabilities": {
+      "WEBDRIVERIO_OPTIONS": {
+        "capabilities": {
+          "browserName": "Chrome",
+          "deviceName": "Android GoogleAPI Emulator",
+          "platformName": "Android",
+          "platformVersion": "9.0",
+          "username": "xxx",
+          "accessKey": "xxx"
+        },
+        "protocol": "https",
+        "hostname": "ondemand.us-west-1.saucelabs.com",
+        "port": 443,
+        "path": "/wd/hub"
+      },
+      "WEBDRIVERIO_START_CHROMEDRIVER": false,
+      "WEBDRIVERIO_ADDITIONAL_CAPABILITIES": { "appiumVersion": "1.17.1" }
+    }
+  }
+}

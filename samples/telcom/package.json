@@ -1,0 +1,22 @@
+{
+  "name": "telcom",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "mocha spec",
+    "test-saucelabs-android": "cross-env BOTIUM_MOCHA_TIMEOUT=120000 BOTIUM_CONFIG=botium-saucelabs-android.json mocha spec",
+    "test-saucelabs-iphone": "cross-env BOTIUM_MOCHA_TIMEOUT=120000 BOTIUM_CONFIG=botium-saucelabs-iphone.json mocha spec"
+  },
+  "devDependencies": {
+    "botium-bindings": "latest",
+    "botium-connector-webdriverio": "../../",
+    "cross-env": "latest",
+    "mocha": "latest"
+  },
+  "botium": {
+    "convodirs": [
+      "spec/convo"
+    ],
+    "expandConvos": true,
+    "expandUtterancesToConvos": false
+  }
+}

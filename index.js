@@ -32,6 +32,7 @@ const profiles = {
 
 const Capabilities = {
   WEBDRIVERIO_OPTIONS: 'WEBDRIVERIO_OPTIONS',
+  WEBDRIVERIO_ADDITIONAL_CAPABILITIES: 'WEBDRIVERIO_ADDITIONAL_CAPABILITIES',
   WEBDRIVERIO_URL: 'WEBDRIVERIO_URL',
   WEBDRIVERIO_APP: 'WEBDRIVERIO_APP',
   WEBDRIVERIO_APPPACKAGE: 'WEBDRIVERIO_APPPACKAGE',
@@ -123,13 +124,17 @@ const openBotDefault = async (container, browser) => {
     }
     for (const [i, clickSelector] of clickSelectors.entries()) {
       debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
-      const clickElement = await container.findElement(clickSelector)
-      await clickElement.waitForClickable({
-        timeout: 20000,
-        altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
-        browser
-      })
-      await clickElement.click()
+      try {
+        const clickElement = await container.findElement(clickSelector)
+        await clickElement.waitForClickable({
+          timeout: 20000,
+          altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
+          browser
+        })
+        await clickElement.click()
+      } catch (err) {
+        debug(`openBotDefault - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
+      }
     }
   }
 
@@ -387,6 +392,11 @@ class BotiumConnectorWebdriverIO {
 
       const options = this.caps[Capabilities.WEBDRIVERIO_OPTIONS] || {}
       options.capabilities = options.capabilities || {}
+      if (this.caps[Capabilities.WEBDRIVERIO_ADDITIONAL_CAPABILITIES]) {
+        const addCapsString = this.caps[Capabilities.WEBDRIVERIO_ADDITIONAL_CAPABILITIES]
+        const addCaps = _.isString(addCapsString) ? JSON.parse(addCapsString) : addCapsString
+        Object.assign(options.capabilities, addCaps)
+      }
       if (!options.logLevel) {
         options.logLevel = this.caps[Capabilities.WEBDRIVERIO_SELENIUM_DEBUG] ? 'info' : 'silent'
       }

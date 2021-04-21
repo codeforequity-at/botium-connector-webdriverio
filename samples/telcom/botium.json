@@ -1,0 +1,26 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "WAITFORBOTTIMEOUT": 30000,
+      "WEBDRIVERIO_URL": "https://www.vodafone.co.uk/contact-us-b2/index.htm",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "TEXT",
+      "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
+        "#onetrust-accept-btn-handler"
+      ],
+      "WEBDRIVERIO_INPUT_ELEMENT": "#tcChat_txtInput_input",
+      "WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT": 15000,
+      "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": "#tcChat_btnSend_img",
+      "WEBDRIVERIO_OUTPUT_ELEMENT": ".agentMsg",
+      "WEBDRIVERIO_IGNOREWELCOMEMESSAGES": 1,
+      "WEBDRIVERIO_SELENIUM_DEBUG": true,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true,
+      "WEBDRIVERIO_SCREENSHOTS": "onstop",
+      "WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS": "--user-agent=\"Mozilla/5.0 (Windows Phone 10.0; Android 4.2.1; Microsoft; Lumia 640 XL LTE) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Mobile Safari/537.36 Edge/12.10166\"",
+      "WEBDRIVERIO_START_CHROMEDRIVER": true
+    },
+    "Sources": {},
+    "Envs": {}
+  }
+}
