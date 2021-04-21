@@ -377,6 +377,10 @@ Extension function to extract the message from the chatbot response element (see
 ### WEBDRIVERIO_SHADOW_ROOT
 The root element selector for chatbots hosted within a [Shadow DOM](https://wiki.selfhtml.org/wiki/HTML/Web_Components/Shadow_DOM)
 
+### WEBDRIVERIO_IMPLICIT_TIMEOUT
+_DEFAULT: 10s_
+Implicit timeout for all element locators
+
 ### WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS
 A list of [Webdriver selectors](https://webdriver.io/docs/selectors.html) for clickable elements which will be clicked one after the other to navigate to the actual chatbot widget.
 

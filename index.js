@@ -49,6 +49,7 @@ const Capabilities = {
   WEBDRIVERIO_HTTPS_PROXY: 'WEBDRIVERIO_HTTPS_PROXY',
   WEBDRIVERIO_NO_PROXY: 'WEBDRIVERIO_NO_PROXY',
   WEBDRIVERIO_SHADOW_ROOT: 'WEBDRIVERIO_SHADOW_ROOT',
+  WEBDRIVERIO_IMPLICIT_TIMEOUT: 'WEBDRIVERIO_IMPLICIT_TIMEOUT',
   WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS: 'WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
@@ -438,6 +439,12 @@ class BotiumConnectorWebdriverIO {
       }
       debug(`Webdriver Options: ${JSON.stringify(options)}`)
       this.browser = await webdriverio.remote(options)
+      if (this.caps[Capabilities.WEBDRIVERIO_IMPLICIT_TIMEOUT]) {
+        await this.browser.setTimeout({
+          implicit: this.caps[Capabilities.WEBDRIVERIO_IMPLICIT_TIMEOUT]
+        })
+      }
+
       if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
       await this.openBrowser(this, this.browser)
