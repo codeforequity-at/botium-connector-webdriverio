@@ -58,6 +58,9 @@ const Capabilities = {
   WEBDRIVERIO_INPUT_ELEMENT_BUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_BUTTON',
   WEBDRIVERIO_INPUTPAUSE: 'WEBDRIVERIO_INPUTPAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
+  WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_SELECTOR',
+  WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ATTRIBUTE',
+  WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ORDER: 'WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ORDER',
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT',
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS',
@@ -79,6 +82,7 @@ const Capabilities = {
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
   WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE',
   WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
+  WEBDRIVERIO_SCREENSHOTS_DEBUG: 'WEBDRIVERIO_SCREENSHOTS_DEBUG',
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
   WEBDRIVERIO_START_SELENIUM_OPTS: 'WEBDRIVERIO_START_SELENIUM_OPTS',
   WEBDRIVERIO_START_CHROMEDRIVER: 'WEBDRIVERIO_START_CHROMEDRIVER',
@@ -190,7 +194,21 @@ const sendToBotDefault = async (container, browser, msg) => {
 const receiveFromBotDefault = async (container, browser) => {
   const outputElement = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT]
   const r = await container.findElements(outputElement)
-  return r
+
+  const orderSel = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_SELECTOR]
+  const orderAttr = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ATTRIBUTE]
+  const orderOrder = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ORDER] || 'asc'
+  if (orderSel || orderAttr) {
+    const orderVals = []
+    for (const element of r) {
+      const orderElement = orderSel ? await element.$(orderSel) : element
+      const orderVal = orderAttr ? await orderElement.getAttribute(orderAttr) : await _getTextFromElement(container, browser, orderElement)
+      orderVals.push(orderVal)
+    }
+    return _.chain(r).map((e, i) => ({ e, i })).orderBy([s => orderVals[s.i]], [orderOrder]).value().map(e => e.e)
+  } else {
+    return r
+  }
 }
 
 const _isNested = (container, capName, def) => {
@@ -223,60 +241,62 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId, html } }
   botMsg.messageText = await _getTextFromElement(container, browser, element)
 
-  let buttonElements
-  if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
-    buttonElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
-  } else {
-    buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
-  }
-
-  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
-    const extraButtonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS])
-    if (extraButtonElements) {
-      buttonElements = (buttonElements || []).concat(extraButtonElements)
+  if (!container.isAppium()) {
+    let buttonElements
+    if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
+      buttonElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+    } else {
+      buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
     }
-  }
 
-  for (const buttonElement of (buttonElements || [])) {
-    const buttonElementText = await buttonElement.getText()
-    if (buttonElementText) {
-      const button = {
-        text: buttonElementText
+    if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
+      const extraButtonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS])
+      if (extraButtonElements) {
+        buttonElements = (buttonElements || []).concat(extraButtonElements)
       }
-      const buttonHrefValue = await buttonElement.getAttribute('href')
-      if (buttonHrefValue) {
-        button.payload = buttonHrefValue
-      } else {
-        const buttonHtml = await buttonElement.getHTML()
-        if (buttonHtml) {
-          const foundLink = buttonHtml.match(urlRegexp)
-          if (foundLink && foundLink.length > 0) {
-            button.payload = foundLink[0]
+    }
+
+    for (const buttonElement of (buttonElements || [])) {
+      const buttonElementText = await buttonElement.getText()
+      if (buttonElementText) {
+        const button = {
+          text: buttonElementText
+        }
+        const buttonHrefValue = await buttonElement.getAttribute('href')
+        if (buttonHrefValue) {
+          button.payload = buttonHrefValue
+        } else {
+          const buttonHtml = await buttonElement.getHTML()
+          if (buttonHtml) {
+            const foundLink = buttonHtml.match(urlRegexp)
+            if (foundLink && foundLink.length > 0) {
+              button.payload = foundLink[0]
+            }
           }
         }
+
+        botMsg.buttons = botMsg.buttons || []
+        botMsg.buttons.push(button)
       }
-
-      botMsg.buttons = botMsg.buttons || []
-      botMsg.buttons.push(button)
     }
-  }
 
-  let mediaElements
-  if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
-    mediaElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
-  } else {
-    mediaElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
-  }
-  for (const mediaElement of (mediaElements || [])) {
-    const mediaSrcValue = await mediaElement.getAttribute('src')
-    if (mediaSrcValue) {
-      const mediaAltValue = await mediaElement.getAttribute('alt')
-      botMsg.media = botMsg.media || []
-      botMsg.media.push({
-        mediaUri: mediaSrcValue,
-        mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
-        altText: mediaAltValue
-      })
+    let mediaElements
+    if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
+      mediaElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+    } else {
+      mediaElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+    }
+    for (const mediaElement of (mediaElements || [])) {
+      const mediaSrcValue = await mediaElement.getAttribute('src')
+      if (mediaSrcValue) {
+        const mediaAltValue = await mediaElement.getAttribute('alt')
+        botMsg.media = botMsg.media || []
+        botMsg.media.push({
+          mediaUri: mediaSrcValue,
+          mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
+          altText: mediaAltValue
+        })
+      }
     }
   }
 
@@ -292,6 +312,10 @@ class BotiumConnectorWebdriverIO {
     this.caps = caps
     this.handledElement = []
     this.screenshotCounterBySection = {}
+  }
+
+  isAppium () {
+    return !!(this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE])
   }
 
   async Validate () {
@@ -517,7 +541,7 @@ class BotiumConnectorWebdriverIO {
       debug(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
       throw new Error(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
     } finally {
-      if (debug.enabled) {
+      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) {
         if (this.queue) {
           await this._runInQueue(async () => {
             await this._saveDebugScreenshot('onstart')
@@ -539,7 +563,7 @@ class BotiumConnectorWebdriverIO {
         debug(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
         throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
       } finally {
-        if (debug.enabled) await this._saveDebugScreenshot('usersays')
+        if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) await this._saveDebugScreenshot('usersays')
       }
       const inputPause = this.caps[Capabilities.WEBDRIVERIO_INPUTPAUSE]
       if (inputPause && inputPause > 0) {
@@ -567,10 +591,9 @@ class BotiumConnectorWebdriverIO {
         if (screenshot) {
           msg.attachments = msg.attachments || []
           msg.attachments.push(screenshot)
-          if (debug.enabled) await this._saveDebugScreenshot('usersays')
         }
       }
-      if (debug.enabled) await this._saveDebugScreenshot('onbotsays')
+      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) await this._saveDebugScreenshot('onbotsays')
       this.queueBotSays(msg)
     }
   }
@@ -617,18 +640,27 @@ class BotiumConnectorWebdriverIO {
   }
 
   async _handleNewElements () {
+    const shouldLoadHtml = (
+      this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH' &&
+      !this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE] &&
+      !this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]
+    ) || this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]
+
     try {
       const r = await this.receiveFromBot(this, this.browser)
+
       for (const [index, element] of (r || []).entries()) {
         let html = null
-        try {
-          html = await element.getHTML()
-        } catch (err) {
-        }
-        if (!html) {
+        if (shouldLoadHtml) {
           try {
-            html = await this.browser.getPageSource()
+            html = await element.getHTML()
           } catch (err) {
+          }
+          if (!html) {
+            try {
+              html = await this.browser.getPageSource()
+            } catch (err) {
+            }
           }
         }
 
@@ -661,7 +693,7 @@ class BotiumConnectorWebdriverIO {
               debug(html)
             }
             this.handledElements.push(hashKey)
-            if (this.queue) this.queue.push(() => this.getBotMessage(this, this.browser, element, html))
+            await this.getBotMessage(this, this.browser, element, html)
           }
         } catch (err) {
           debug(`Failed in getBotMessage, skipping: ${err}`)
@@ -669,6 +701,7 @@ class BotiumConnectorWebdriverIO {
       }
     } catch (err) {
       debug(`Failed in receiving from bot: ${err}`)
+      console.log('failed receive', err)
     }
     setTimeout(() => {
       if (this.queue) {
