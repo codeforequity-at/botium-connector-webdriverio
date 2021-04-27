@@ -10,6 +10,8 @@ const chromedriver = require('chromedriver')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
 const { NodeVM } = require('vm2')
+const xpath = require('xpath')
+const { DOMParser } = require('xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
 
 const { BotiumError, Capabilities: CoreCapabilities } = require('botium-core')
@@ -57,6 +59,7 @@ const Capabilities = {
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
   WEBDRIVERIO_INPUT_ELEMENT_BUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_BUTTON',
   WEBDRIVERIO_INPUTPAUSE: 'WEBDRIVERIO_INPUTPAUSE',
+  WEBDRIVERIO_OUTPUT_XPATH: 'WEBDRIVERIO_OUTPUT_XPATH',
   WEBDRIVERIO_OUTPUT_ELEMENT: 'WEBDRIVERIO_OUTPUT_ELEMENT',
   WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_SELECTOR',
   WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ATTRIBUTE',
@@ -192,9 +195,26 @@ const sendToBotDefault = async (container, browser, msg) => {
 }
 
 const receiveFromBotDefault = async (container, browser) => {
-  const outputElement = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT]
-  const r = await container.findElements(outputElement)
+  let r = null
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH]) {
+    const xml = await browser.getPageSource()
+    const doc = new DOMParser().parseFromString(xml)
 
+    const xResultToAppium = (s) => ({
+      getText: () => s.getAttribute('text'),
+      getAttribute: (name) => s.getAttribute(name),
+      $: (sel) => {
+        const singleResult = xpath.select(sel, s, true)
+        if (singleResult) return xResultToAppium(singleResult)
+        else return null
+      },
+      $$: (sel) => xpath.select(sel, s, false).map(m => xResultToAppium(m))
+    })
+    r = xpath.select(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT], doc, false).map(s => xResultToAppium(s))
+  } else {
+    const outputElement = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT]
+    r = await container.findElements(outputElement)
+  }
   const orderSel = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_SELECTOR]
   const orderAttr = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ATTRIBUTE]
   const orderOrder = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_ORDER_ORDER] || 'asc'
@@ -205,6 +225,7 @@ const receiveFromBotDefault = async (container, browser) => {
       const orderVal = orderAttr ? await orderElement.getAttribute(orderAttr) : await _getTextFromElement(container, browser, orderElement)
       orderVals.push(orderVal)
     }
+    console.log(orderVals)
     return _.chain(r).map((e, i) => ({ e, i })).orderBy([s => orderVals[s.i]], [orderOrder]).value().map(e => e.e)
   } else {
     return r
@@ -241,12 +262,13 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId, html } }
   botMsg.messageText = await _getTextFromElement(container, browser, element)
 
-  if (!container.isAppium()) {
+  const buttonsSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+  if (buttonsSelector) {
     let buttonElements
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
-      buttonElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+      buttonElements = await element.$$(buttonsSelector)
     } else {
-      buttonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+      buttonElements = await container.findElements(buttonsSelector)
     }
 
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
@@ -279,12 +301,15 @@ const getBotMessageDefault = async (container, browser, element, html) => {
         botMsg.buttons.push(button)
       }
     }
+  }
 
+  const mediaSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+  if (mediaSelector) {
     let mediaElements
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
-      mediaElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+      mediaElements = await element.$$(mediaSelector)
     } else {
-      mediaElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+      mediaElements = await container.findElements(mediaSelector)
     }
     for (const mediaElement of (mediaElements || [])) {
       const mediaSrcValue = await mediaElement.getAttribute('src')
@@ -339,6 +364,9 @@ class BotiumConnectorWebdriverIO {
     if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
 
+    if (!_.has(this.caps, Capabilities.WEBDRIVERIO_OUTPUT_XPATH)) {
+      this.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH] = this.isAppium()
+    }
     this.openBrowser = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBROWSER, openBrowserDefault)
     this.openBot = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBOT, openBotDefault)
     this.sendToBot = this._loadFunction(Capabilities.WEBDRIVERIO_SENDTOBOT, sendToBotDefault)

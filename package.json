@@ -49,7 +49,9 @@
     "mustache": "^4.2.0",
     "selenium-standalone": "^6.23.0",
     "vm2": "^3.9.3",
-    "webdriverio": "^7.5.1"
+    "webdriverio": "^7.5.1",
+    "xmldom": "^0.6.0",
+    "xpath": "0.0.32"
   },
   "peerDependencies": {
     "botium-core": "^1.4.15"

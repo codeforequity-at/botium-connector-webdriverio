@@ -59,8 +59,11 @@ module.exports = {
   WEBDRIVERIO_INPUT_ELEMENT: '//*[@resource-id="com.whatsapp:id/entry"]',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: '//*[@resource-id="com.whatsapp:id/send"]',
   WEBDRIVERIO_INPUTPAUSE: 2000,
+  WEBDRIVERIO_OUTPUT_XPATH: true,
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'TEXT',
   WEBDRIVERIO_OUTPUT_ELEMENT: '//*[(@resource-id="com.whatsapp:id/conversation_text_row" or @resource-id="com.whatsapp:id/text_and_date") and not(descendant::*[@resource-id="com.whatsapp:id/status"])]',
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT: './/*[(@resource-id="com.whatsapp:id/message_text" or @resource-id="com.whatsapp:id/caption")]',
+  WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS: false,
+  WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: false,
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: true
 }
