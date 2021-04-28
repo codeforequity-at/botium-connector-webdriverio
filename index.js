@@ -225,7 +225,6 @@ const receiveFromBotDefault = async (container, browser) => {
       const orderVal = orderAttr ? await orderElement.getAttribute(orderAttr) : await _getTextFromElement(container, browser, orderElement)
       orderVals.push(orderVal)
     }
-    console.log(orderVals)
     return _.chain(r).map((e, i) => ({ e, i })).orderBy([s => orderVals[s.i]], [orderOrder]).value().map(e => e.e)
   } else {
     return r
@@ -729,7 +728,6 @@ class BotiumConnectorWebdriverIO {
       }
     } catch (err) {
       debug(`Failed in receiving from bot: ${err}`)
-      console.log('failed receive', err)
     }
     setTimeout(() => {
       if (this.queue) {
