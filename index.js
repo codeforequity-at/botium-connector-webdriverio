@@ -146,17 +146,17 @@ const openBotDefault = async (container, browser) => {
   }
 
   const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
-  const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
+  if (inputElementSelector) {
+    const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
-  const inputElement = await container.findElement(inputElementSelector)
-  await inputElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
-  debug(`Input element ${inputElementSelector} is visible`)
+    const inputElement = await container.findElement(inputElementSelector)
+    await inputElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
+    debug(`Input element ${inputElementSelector} is visible`)
+  }
 }
 
 const sendToBotDefault = async (container, browser, msg) => {
-  const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
-  const inputElementSendButtonSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
 
   if (msg.buttons && msg.buttons.length > 0) {
     const qrView = {
@@ -177,6 +177,13 @@ const sendToBotDefault = async (container, browser, msg) => {
     debug(`button ${qrSelector} is visible, simulating click`)
     await qrElement.click()
   } else {
+    const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
+    if (!inputElementSelector) {
+      throw new Error(`Trying to send text "${msg.messageText}", but no input element configured.`)
+    }
+
+    const inputElementSendButtonSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON]
+
     const inputElement = await container.findElement(inputElementSelector)
     await inputElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
     debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}"`)
@@ -359,8 +366,6 @@ class BotiumConnectorWebdriverIO {
     if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
     if (this.caps[Capabilities.WEBDRIVERIO_URL] && this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_APPPACKAGE capability cannot be used together')
     if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE] && !this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) throw new Error('WEBDRIVERIO_APPACTIVITY capability required for WEBDRIVERIO_APPPACKAGE')
-    if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_OPENBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_OPENBOT or WEBDRIVERIO_PROFILE capability required')
-    if (!this.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_SENDTOBOT]) throw new Error('WEBDRIVERIO_INPUT_ELEMENT or WEBDRIVERIO_SENDTOBOT or WEBDRIVERIO_PROFILE capability required')
     if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
 
     if (!_.has(this.caps, Capabilities.WEBDRIVERIO_OUTPUT_XPATH)) {
