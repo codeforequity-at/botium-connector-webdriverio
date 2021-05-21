@@ -184,8 +184,8 @@ const sendToBotDefault = async (container, browser, msg) => {
     }
     qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
     qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
-    qrView.button.textlowerconcat = qrView.button.text && `concat('${qrView.button.text.toLowerCase().replace(/'/g, '\',"\'",\'')}')`
-    qrView.button.payloadlowerconcat = qrView.button.payload && `concat('${qrView.button.payload.toLowerCase().replace(/'/g, '\',"\'",\'')}')`
+    qrView.button.textlowerconcat = qrView.button.textlower && (qrView.button.textlower.indexOf('\'') < 0 ? `'${qrView.button.textlower}'` : `concat('${qrView.button.textlower.replace(/'/g, '\',"\'",\'')}')`)
+    qrView.button.payloadlowerconcat = qrView.button.payloadlower && (qrView.button.payloadlower.indexOf('\'') < 0 ? `'${qrView.button.payloadlower}'` : `concat('${qrView.button.payloadlower.replace(/'/g, '\',"\'",\'')}')`)
 
     const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()]'
     const qrSelector = Mustache.render(qrSelectorTemplate, qrView)

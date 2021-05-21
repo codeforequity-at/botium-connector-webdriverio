@@ -5,7 +5,7 @@
       "CLEANUPTEMPDIR": true,
       "CONTAINERMODE": "webdriverio",
       "WEBDRIVERIO_URL": "https://www.perfecto.io/pricing/subscription-plans",
-      "WEBDRIVERIO_VIEWPORT_SIZE": { "width": 1280, "height": 768 },
+      "__WEBDRIVERIO_VIEWPORT_SIZE": { "width": 1280, "height": 768 },
       "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
         "iframe://iframe[@class='drift-frame-controller']",
         ".drift-widget-controller-icon",
