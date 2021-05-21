@@ -429,10 +429,12 @@ _Default: .//button | .//a[@href]_
 
 If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED to _true_ (default). Some chatbot widgets show Quick Response Buttons as overlay, not within the DOM of the chat window - for these cases, setting this capability to _false_ will help.
 
+Set the _WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE_ capability to pause execution for a few milliseconds to give the screen some additional time to render.
+
 ### WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS
 _Default: empty_
 
-[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting additional buttons shown on the screen.
+[Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting additional buttons shown on the screen. Set the _WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE_ capability to pause execution for a few milliseconds to give the screen some additional time to render.
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA and WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED
 _Default: .//img | .//video | .//audio_
@@ -440,6 +442,8 @@ _Default: .//img | .//video | .//audio_
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for selecting the media attachments within the identified output elements - default behaviour is to check for pictures, videos and audio attachments
 
 If the selector is relative to the identified WEBDRIVERIO_OUTPUT_ELEMENT, set WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED to _true_ (default).
+
+Set the _WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE_ capability to pause execution for a few milliseconds to give the screen some additional time to render.
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH
 _Default: ELEMENTID_

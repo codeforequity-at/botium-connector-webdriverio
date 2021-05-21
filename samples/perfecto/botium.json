@@ -1,0 +1,24 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "Perfectolabs Robby Sample",
+      "CLEANUPTEMPDIR": true,
+      "CONTAINERMODE": "webdriverio",
+      "WEBDRIVERIO_URL": "https://www.perfecto.io/pricing/subscription-plans",
+      "WEBDRIVERIO_VIEWPORT_SIZE": { "width": 1280, "height": 768 },
+      "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
+        "iframe://iframe[@class='drift-frame-controller']",
+        ".drift-widget-controller-icon",
+        "iframe:parent",
+        "iframe://iframe[@class='drift-frame-chat']"
+      ],
+      "WEBDRIVERIO_OUTPUT_ELEMENT": ".drift-widget-message-sender--AGENT",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_TEXT": ".drift-widget-message--bot",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED": false,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS": ".drift-widget-button--list-item",
+      "WEBDRIVERIO_SCREENSHOTS": "onbotsays",
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS": ["--no-sandbox", "--disable-gpu"]
+    }
+  }
+}

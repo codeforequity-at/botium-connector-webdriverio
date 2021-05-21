@@ -68,9 +68,12 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS',
   WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED',
+  WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS',
+  WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
+  WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR',
@@ -107,8 +110,9 @@ const openBrowserDefault = async (container, browser) => {
     debug(html)
   }
   if (container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
-    await browser.setViewportSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
+    await browser.setWindowSize(container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE].width, container.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE].height)
   }
+
   try {
     await browser.execute('window.localStorage.clear();')
     debug(`URL ${url} opened, deleted local storage`)
@@ -124,31 +128,44 @@ const openBrowserDefault = async (container, browser) => {
 }
 
 const openBotDefault = async (container, browser) => {
+  const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
+
   if (container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS]) {
     let clickSelectors = container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS]
     if (_.isString(clickSelectors)) {
       clickSelectors = [clickSelectors]
     }
     for (const [i, clickSelector] of clickSelectors.entries()) {
-      debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
-      try {
-        const clickElement = await container.findElement(clickSelector)
-        await clickElement.waitForClickable({
-          timeout: 20000,
-          altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
-          browser
-        })
-        await clickElement.click()
-      } catch (err) {
-        debug(`openBotDefault - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
+      if (clickSelector.startsWith('iframe:')) {
+        debug(`openBotDefault - trying to switchto iframe #${i + 1}: ${clickSelector}`)
+
+        const iframeSelector = clickSelector.substring(7)
+        if (iframeSelector === 'parent') {
+          await browser.switchToParentFrame()
+        } else {
+          const iframeElement = await container.findElement(iframeSelector)
+          await iframeElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
+          await browser.switchToFrame(iframeElement)
+        }
+      } else {
+        debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
+        try {
+          const clickElement = await container.findElement(clickSelector)
+          await clickElement.waitForClickable({
+            timeout: 20000,
+            altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
+            browser
+          })
+          await clickElement.click()
+        } catch (err) {
+          debug(`openBotDefault - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
+        }
       }
     }
   }
 
   const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
   if (inputElementSelector) {
-    const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
-
     const inputElement = await container.findElement(inputElementSelector)
     await inputElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
     debug(`Input element ${inputElementSelector} is visible`)
@@ -167,8 +184,10 @@ const sendToBotDefault = async (container, browser, msg) => {
     }
     qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
     qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
+    qrView.button.textlowerconcat = qrView.button.text && `concat('${qrView.button.text.toLowerCase().replace(/'/g, '\',"\'",\'')}')`
+    qrView.button.payloadlowerconcat = qrView.button.payload && `concat('${qrView.button.payload.toLowerCase().replace(/'/g, '\',"\'",\'')}')`
 
-    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),\'{{button.textlower}}\')][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),\'{{button.textlower}}\')][last()]'
+    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()]'
     const qrSelector = Mustache.render(qrSelectorTemplate, qrView)
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
@@ -270,6 +289,9 @@ const getBotMessageDefault = async (container, browser, element, html) => {
 
   const buttonsSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   if (buttonsSelector) {
+    if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE]) {
+      await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE])
+    }
     let buttonElements
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
       buttonElements = await element.$$(buttonsSelector)
@@ -278,6 +300,9 @@ const getBotMessageDefault = async (container, browser, element, html) => {
     }
 
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
+      if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE]) {
+        await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE])
+      }
       const extraButtonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS])
       if (extraButtonElements) {
         buttonElements = (buttonElements || []).concat(extraButtonElements)
@@ -311,6 +336,10 @@ const getBotMessageDefault = async (container, browser, element, html) => {
 
   const mediaSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
   if (mediaSelector) {
+    if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE]) {
+      await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE])
+    }
+
     let mediaElements
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED, true)) {
       mediaElements = await element.$$(mediaSelector)
@@ -367,6 +396,13 @@ class BotiumConnectorWebdriverIO {
     if (this.caps[Capabilities.WEBDRIVERIO_URL] && this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_APPPACKAGE capability cannot be used together')
     if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE] && !this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) throw new Error('WEBDRIVERIO_APPACTIVITY capability required for WEBDRIVERIO_APPPACKAGE')
     if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
+
+    if (this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE] && _.isString(this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])) {
+      this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE] = JSON.parse(this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
+    }
+    if (this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE]) {
+      if (!this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE].width || !this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE].height) throw new Error('WEBDRIVERIO_VIEWPORT_SIZE capability requires width and height properties')
+    }
 
     if (!_.has(this.caps, Capabilities.WEBDRIVERIO_OUTPUT_XPATH)) {
       this.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH] = this.isAppium()
@@ -718,6 +754,7 @@ class BotiumConnectorWebdriverIO {
           } else {
             hashKey = `${element.ELEMENT || element.elementId}`
           }
+
           if (this.handledElements.indexOf(hashKey) < 0) {
             debug(`Found new bot response element, id ${element.ELEMENT || element.elementId}, hashKey ${hashKey}`)
 
