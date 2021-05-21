@@ -290,7 +290,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   const buttonsSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
   if (buttonsSelector) {
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE]) {
-      await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE])
+      await browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE])
     }
     let buttonElements
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED, true)) {
@@ -301,7 +301,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
 
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS]) {
       if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE]) {
-        await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE])
+        await browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS_PAUSE])
       }
       const extraButtonElements = await container.findElements(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_EXTRA_BUTTONS])
       if (extraButtonElements) {
@@ -337,7 +337,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   const mediaSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
   if (mediaSelector) {
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE]) {
-      await this.browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE])
+      await browser.pause(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE])
     }
 
     let mediaElements
