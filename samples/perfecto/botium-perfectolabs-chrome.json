@@ -7,7 +7,7 @@
           "platformName": "Windows",
           "platformVersion": "10",
           "browserName": "Chrome",
-          "browserVersion": "80",
+          "version": "91",
           "securityToken": "..."
         },
         "protocol": "https",

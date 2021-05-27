@@ -156,6 +156,7 @@ const openBotDefault = async (container, browser) => {
             altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
             browser
           })
+          if (!container.isAppium()) await clickElement.scrollIntoView()
           await clickElement.click()
         } catch (err) {
           debug(`openBotDefault - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
@@ -194,6 +195,7 @@ const sendToBotDefault = async (container, browser, msg) => {
     const qrElement = await container.findElement(qrSelector)
     await qrElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
     debug(`button ${qrSelector} is visible, simulating click`)
+    if (!container.isAppium()) await qrElement.scrollIntoView()
     await qrElement.click()
   } else {
     const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
@@ -212,6 +214,7 @@ const sendToBotDefault = async (container, browser, msg) => {
       const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
       await inputElementSendButton.waitForEnabled({ timeout: inputElementVisibleTimeout })
       debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
+      if (!container.isAppium()) await inputElementSendButton.scrollIntoView()
       await inputElementSendButton.click()
     } else {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Enter key)`)
