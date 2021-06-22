@@ -153,7 +153,11 @@ const openBotDefault = async (container, browser) => {
           const clickElement = await container.findElement(clickSelector)
           await clickElement.waitForClickable({
             timeout: 20000,
-            altFunc: () => clickElement.isDisplayed() && clickElement.isEnabled(),
+            altFunc: async () => {
+              if (!(await clickElement.isDisplayed())) return false
+              if (!(await clickElement.isEnabled())) return false
+              return true
+            },
             browser
           })
           if (!container.isAppium()) await clickElement.scrollIntoView()
@@ -397,8 +401,6 @@ class BotiumConnectorWebdriverIO {
 
     if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
     if (this.caps[Capabilities.WEBDRIVERIO_URL] && this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) throw new Error('WEBDRIVERIO_URL or WEBDRIVERIO_APPPACKAGE capability cannot be used together')
-    if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE] && !this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) throw new Error('WEBDRIVERIO_APPACTIVITY capability required for WEBDRIVERIO_APPPACKAGE')
-    if (!this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] && !this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]) throw new Error('WEBDRIVERIO_OUTPUT_ELEMENT or WEBDRIVERIO_RECEIVEFROMBOT or WEBDRIVERIO_PROFILE capability required')
 
     if (this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE] && _.isString(this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])) {
       this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE] = JSON.parse(this.caps[Capabilities.WEBDRIVERIO_VIEWPORT_SIZE])
@@ -499,7 +501,7 @@ class BotiumConnectorWebdriverIO {
       if (this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]) {
         const prefix = this.caps[Capabilities.WEBDRIVERIO_USE_APPIUM_PREFIX] || ''
         options.capabilities[`${prefix}appPackage`] = this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE]
-        options.capabilities[`${prefix}appActivity`] = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
+        if (this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]) options.capabilities[`${prefix}appActivity`] = this.caps[Capabilities.WEBDRIVERIO_APPACTIVITY]
         if (this.caps[Capabilities.WEBDRIVERIO_APP]) options.capabilities[`${prefix}app`] = this.caps[Capabilities.WEBDRIVERIO_APP]
         if (_.has(this.caps, Capabilities.WEBDRIVERIO_APPNORESET)) options.capabilities[`${prefix}noReset`] = !!this.caps[Capabilities.WEBDRIVERIO_APPNORESET]
         if (!options.capabilities.noReset) options.capabilities[`${prefix}autoGrantPermissions`] = true
@@ -557,10 +559,9 @@ class BotiumConnectorWebdriverIO {
       // overwrite waitForClickable function for appium support
       this.browser.overwriteCommand('waitForClickable', async (origFunction, params) => {
         try {
-          debug('trying original waitForClickable function')
           await origFunction(params)
         } catch (err) {
-          if (err.message.includes('implemented') || err.message.includes('supported')) {
+          if (params.altFunc && (err.message.includes('implemented') || err.message.includes('supported'))) {
             debug('trying alternative waitForClickable function')
             return params.browser.waitUntil(params.altFunc, params)
           }
@@ -594,15 +595,19 @@ class BotiumConnectorWebdriverIO {
         })
       })
 
-      if (this.ignoreWelcomeMessageCounter > 0) {
-        debug(`Waiting for ${this.ignoreWelcomeMessageCounter} welcome messages (will be ignored) ...`)
-        await new Promise((resolve) => {
-          this.ignoreWelcomeMessagesResolve = resolve
+      const runOutputElementPolling = this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT] || this.caps[Capabilities.WEBDRIVERIO_RECEIVEFROMBOT]
+      if (runOutputElementPolling) {
+        debug('Starting output element polling loop.')
+        if (this.ignoreWelcomeMessageCounter > 0) {
+          debug(`Waiting for ${this.ignoreWelcomeMessageCounter} welcome messages (will be ignored) ...`)
+          await new Promise((resolve) => {
+            this.ignoreWelcomeMessagesResolve = resolve
+            this.queue.push(() => this._handleNewElements())
+          })
+        } else {
+          this.ignoreWelcomeMessagesResolve = null
           this.queue.push(() => this._handleNewElements())
-        })
-      } else {
-        this.ignoreWelcomeMessagesResolve = null
-        this.queue.push(() => this._handleNewElements())
+        }
       }
 
       return {
