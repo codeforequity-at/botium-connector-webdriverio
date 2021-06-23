@@ -384,6 +384,10 @@ Implicit timeout for all element locators
 ### WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS
 A list of [Webdriver selectors](https://webdriver.io/docs/selectors.html) for clickable elements which will be clicked one after the other to navigate to the actual chatbot widget.
 
+Special meaning for iFrame navigation:
+* Starting a selector with _iframe:_ will switch all subsequent selectors to the iFrame selected by the selector
+* Switching back to the iFrame parent can be done with the selector with _iframe:parent_
+
 ### WEBDRIVERIO_INPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the input text field
 

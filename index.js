@@ -131,33 +131,7 @@ const openBotDefault = async (container, browser) => {
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
   if (container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS]) {
-    let clickSelectors = container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS]
-    if (_.isString(clickSelectors)) {
-      clickSelectors = [clickSelectors]
-    }
-    for (const [i, clickSelector] of clickSelectors.entries()) {
-      if (clickSelector.startsWith('iframe:')) {
-        debug(`openBotDefault - trying to switchto iframe #${i + 1}: ${clickSelector}`)
-
-        const iframeSelector = clickSelector.substring(7)
-        if (iframeSelector === 'parent') {
-          await browser.switchToParentFrame()
-        } else {
-          const iframeElement = await container.findElement(iframeSelector)
-          await iframeElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
-          await browser.switchToFrame(iframeElement)
-        }
-      } else {
-        debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
-        try {
-          const clickElement = await container.findElement(clickSelector)
-          await container.waitForClickElement(clickElement, { timeout: 20000 })
-          await clickElement.click()
-        } catch (err) {
-          debug(`openBotDefault - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
-        }
-      }
-    }
+    await container.clickSeries(container.caps[Capabilities.WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS], { timeout: inputElementVisibleTimeout })
   }
 
   const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
@@ -386,6 +360,38 @@ class BotiumConnectorWebdriverIO {
       await clickElement.waitForClickable(options)
     }
     if (!this.isAppium()) await clickElement.scrollIntoView()
+  }
+
+  async clickSeries (clickSelectors, options) {
+    if (!this.browser) throw new Error('Connector not yet started')
+    if (!clickSelectors) return
+    if (_.isString(clickSelectors)) {
+      clickSelectors = [clickSelectors]
+    }
+    for (const [i, clickSelector] of clickSelectors.entries()) {
+      if (clickSelector.startsWith('iframe:')) {
+        debug(`clickSeries - trying to switchto iframe #${i + 1}: ${clickSelector}`)
+
+        const iframeSelector = clickSelector.substring(7)
+        if (iframeSelector === 'parent') {
+          await this.browser.switchToParentFrame()
+        } else {
+          const iframeElement = await this.findElement(iframeSelector)
+          await iframeElement.waitForDisplayed(options)
+          await this.browser.switchToFrame(iframeElement)
+        }
+      } else {
+        debug(`clickSeries - trying to click on element #${i + 1}: ${clickSelector}`)
+        try {
+          const clickElement = await this.findElement(clickSelector)
+          await this.waitForClickElement(clickElement, options)
+          await clickElement.click()
+          debug(`clickSeries - clicked on element #${i + 1}: ${clickSelector}`)
+        } catch (err) {
+          debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
+        }
+      }
+    }
   }
 
   async Validate () {
