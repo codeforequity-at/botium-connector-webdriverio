@@ -151,16 +151,7 @@ const openBotDefault = async (container, browser) => {
         debug(`openBotDefault - trying to click on element #${i + 1}: ${clickSelector}`)
         try {
           const clickElement = await container.findElement(clickSelector)
-          await clickElement.waitForClickable({
-            timeout: 20000,
-            altFunc: async () => {
-              if (!(await clickElement.isDisplayed())) return false
-              if (!(await clickElement.isEnabled())) return false
-              return true
-            },
-            browser
-          })
-          if (!container.isAppium()) await clickElement.scrollIntoView()
+          await container.waitForClickElement(clickElement, { timeout: 20000 })
           await clickElement.click()
         } catch (err) {
           debug(`openBotDefault - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
@@ -197,9 +188,8 @@ const sendToBotDefault = async (container, browser, msg) => {
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
     const qrElement = await container.findElement(qrSelector)
-    await qrElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
+    await container.waitForClickElement(qrElement, { timeout: inputElementVisibleTimeout })
     debug(`button ${qrSelector} is visible, simulating click`)
-    if (!container.isAppium()) await qrElement.scrollIntoView()
     await qrElement.click()
   } else {
     const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
@@ -216,9 +206,8 @@ const sendToBotDefault = async (container, browser, msg) => {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
       await inputElement.setValue([...msg.messageText])
       const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
-      await inputElementSendButton.waitForEnabled({ timeout: inputElementVisibleTimeout })
+      await container.waitForClickElement(inputElementSendButton, { timeout: inputElementVisibleTimeout })
       debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
-      if (!container.isAppium()) await inputElementSendButton.scrollIntoView()
       await inputElementSendButton.click()
     } else {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Enter key)`)
@@ -383,6 +372,20 @@ class BotiumConnectorWebdriverIO {
 
   isAppium () {
     return !!(this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE])
+  }
+
+  async waitForClickElement (clickElement, options = {}) {
+    if (!this.browser) throw new Error('Connector not yet started')
+    if (this.isAppium()) {
+      await this.browser.waitUntil(async () => {
+        if (!(await clickElement.isDisplayed())) return false
+        if (!(await clickElement.isEnabled())) return false
+        return true
+      }, options)
+    } else {
+      await clickElement.waitForClickable(options)
+    }
+    if (!this.isAppium()) await clickElement.scrollIntoView()
   }
 
   async Validate () {
@@ -555,19 +558,6 @@ class BotiumConnectorWebdriverIO {
       if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
       await this.openBrowser(this, this.browser)
-
-      // overwrite waitForClickable function for appium support
-      this.browser.overwriteCommand('waitForClickable', async (origFunction, params) => {
-        try {
-          await origFunction(params)
-        } catch (err) {
-          if (params.altFunc && (err.message.includes('implemented') || err.message.includes('supported'))) {
-            debug('trying alternative waitForClickable function')
-            return params.browser.waitUntil(params.altFunc, params)
-          }
-          throw err
-        }
-      }, true)
 
       if (this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT]) {
         const shadowRoot = await this.browser.$(this.caps[Capabilities.WEBDRIVERIO_SHADOW_ROOT])
