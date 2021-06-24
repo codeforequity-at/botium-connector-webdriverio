@@ -78,6 +78,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE',
+  WEBDRIVERIO_SKIP_WAITFORCLICKABLE: 'WEBDRIVERIO_SKIP_WAITFORCLICKABLE',
   WEBDRIVERIO_IGNOREUPFRONTMESSAGES: 'WEBDRIVERIO_IGNOREUPFRONTMESSAGES',
   WEBDRIVERIO_IGNOREWELCOMEMESSAGES: 'WEBDRIVERIO_IGNOREWELCOMEMESSAGES',
   WEBDRIVERIO_IGNOREEMPTYMESSAGES: 'WEBDRIVERIO_IGNOREEMPTYMESSAGES',
@@ -161,10 +162,8 @@ const sendToBotDefault = async (container, browser, msg) => {
     const qrSelector = Mustache.render(qrSelectorTemplate, qrView)
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
-    const qrElement = await container.findElement(qrSelector)
-    await container.waitForClickElement(qrElement, { timeout: inputElementVisibleTimeout })
-    debug(`button ${qrSelector} is visible, simulating click`)
-    await qrElement.click()
+    await container.waitAndClickOn(qrSelector, { timeout: inputElementVisibleTimeout })
+    debug(`simluated click on button ${qrSelector}`)
   } else {
     const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
     if (!inputElementSelector) {
@@ -179,10 +178,8 @@ const sendToBotDefault = async (container, browser, msg) => {
     if (inputElementSendButtonSelector) {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
       await inputElement.setValue([...msg.messageText])
-      const inputElementSendButton = await container.findElement(inputElementSendButtonSelector)
-      await container.waitForClickElement(inputElementSendButton, { timeout: inputElementVisibleTimeout })
-      debug(`input button ${inputElementSendButtonSelector} is visible, simulating click`)
-      await inputElementSendButton.click()
+      await container.waitAndClickOn(inputElementSendButtonSelector, { timeout: inputElementVisibleTimeout })
+      debug(`simulated click on input button ${inputElementSendButtonSelector}`)
     } else {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Enter key)`)
       await inputElement.setValue([...msg.messageText, 'Enter'])
@@ -348,18 +345,30 @@ class BotiumConnectorWebdriverIO {
     return !!(this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE])
   }
 
-  async waitForClickElement (clickElement, options = {}) {
+  async waitAndClickOn (clickElement, options = {}) {
     if (!this.browser) throw new Error('Connector not yet started')
-    if (this.isAppium()) {
-      await this.browser.waitUntil(async () => {
-        if (!(await clickElement.isDisplayed())) return false
-        if (!(await clickElement.isEnabled())) return false
-        return true
-      }, options)
+    if (this.caps[Capabilities.WEBDRIVERIO_SKIP_WAITFORCLICKABLE]) {
+      if (_.isString(clickElement)) {
+        await (await this.findElement(clickElement)).click()
+      } else {
+        await clickElement.click()
+      }
     } else {
-      await clickElement.waitForClickable(options)
+      if (_.isString(clickElement)) {
+        clickElement = await this.findElement(clickElement)
+      }
+      if (this.isAppium()) {
+        await this.browser.waitUntil(async () => {
+          if (!(await clickElement.isDisplayed())) return false
+          if (!(await clickElement.isEnabled())) return false
+          return true
+        }, options)
+      } else {
+        await clickElement.waitForClickable(options)
+      }
+      if (!this.isAppium()) await clickElement.scrollIntoView()
+      await clickElement.click()
     }
-    if (!this.isAppium()) await clickElement.scrollIntoView()
   }
 
   async clickSeries (clickSelectors, options) {
@@ -383,9 +392,7 @@ class BotiumConnectorWebdriverIO {
       } else {
         debug(`clickSeries - trying to click on element #${i + 1}: ${clickSelector}`)
         try {
-          const clickElement = await this.findElement(clickSelector)
-          await this.waitForClickElement(clickElement, options)
-          await clickElement.click()
+          await this.waitAndClickOn(clickSelector, options)
           debug(`clickSeries - clicked on element #${i + 1}: ${clickSelector}`)
         } catch (err) {
           debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
