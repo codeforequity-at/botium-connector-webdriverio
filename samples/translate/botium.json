@@ -1,0 +1,24 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "WAITFORBOTTIMEOUT": 30000,
+      "WEBDRIVERIO_URL": "https://www.google.at",
+      "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
+        "//div[contains(text(),'Ich stimme zu')]",
+        "setvalue:google translate://input[@name='q']",
+        "addvalue:Enter://input[@name='q']"
+      ],
+      "WEBDRIVERIO_INPUT_ELEMENT": "#tw-source-text-ta",
+      "WEBDRIVERIO_OUTPUT_ELEMENT": "#tw-target-text.tw-data-text",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "TEXT",
+      "WEBDRIVERIO_SELENIUM_DEBUG": false,
+      "WEBDRIVERIO_SCREENSHOTS": "onstop",
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS": ["--no-sandbox", "--disable-gpu"]
+    },
+    "Sources": {},
+    "Envs": {}
+  }
+}

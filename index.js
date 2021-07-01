@@ -174,7 +174,6 @@ const sendToBotDefault = async (container, browser, msg) => {
 
     const inputElement = await container.findElement(inputElementSelector)
     await inputElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
-    debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}"`)
     if (inputElementSendButtonSelector) {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
       await inputElement.setValue([...msg.messageText])
@@ -388,6 +387,29 @@ class BotiumConnectorWebdriverIO {
           const iframeElement = await this.findElement(iframeSelector)
           await iframeElement.waitForDisplayed(options)
           await this.browser.switchToFrame(iframeElement)
+        }
+      } else if (clickSelector.startsWith('setvalue:') || clickSelector.startsWith('addvalue:')) {
+        const parts = clickSelector.split(':', 3)
+        const action = parts[0]
+        const value = parts[1]
+        const inputElementSelector = parts[2]
+
+        if (action === 'setvalue') {
+          debug(`clickSeries - trying to set value ${value} #${i + 1}: ${inputElementSelector}`)
+          const inputElement = await this.findElement(inputElementSelector)
+          if (value === 'Enter') {
+            await inputElement.setValue(['Enter'])
+          } else {
+            await inputElement.setValue([...value])
+          }
+        } else if (action === 'addvalue') {
+          debug(`clickSeries - trying to add value ${value} #${i + 1}: ${inputElementSelector}`)
+          const inputElement = await this.findElement(inputElementSelector)
+          if (value === 'Enter') {
+            await inputElement.addValue(['Enter'])
+          } else {
+            await inputElement.addValue([...value])
+          }
         }
       } else {
         debug(`clickSeries - trying to click on element #${i + 1}: ${clickSelector}`)
