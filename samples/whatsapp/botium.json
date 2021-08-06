@@ -13,9 +13,9 @@
       },
       "WEBDRIVERIO_PROFILE": "whatsapp",
       "WEBDRIVERIO_CONTACT": "World Health Organization",
-      "WEBDRIVERIO_LANGUAGE": "de",
+      "WEBDRIVERIO_LANGUAGE": "en",
       "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": false,
-      "WEBDRIVERIO_SELENIUM_DEBUG": true
+      "WEBDRIVERIO_SELENIUM_DEBUG": false
     }
   }
 }

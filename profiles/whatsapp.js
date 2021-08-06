@@ -25,17 +25,27 @@ module.exports = {
     const botUser = container.caps.WEBDRIVERIO_CONTACT
     const labels = whatsappLabels[container.caps.WEBDRIVERIO_LANGUAGE]
 
-    const btnSearch = await container.findElement('//*[@resource-id="com.whatsapp:id/menuitem_search"]')
-    await btnSearch.click()
+    try {
+      const celSel = `//*[@resource-id="com.whatsapp:id/conversations_row_contact_name" and @text="${botUser}"]`
+      const cel = await container.findElement(celSel)
+      await cel.click()
+      debug(`Selected contact ${botUser} in Whatsapp contact list.`)
+    } catch (err) {
+      debug(`Failed to select contact ${botUser} in contact list: ${err.message}`)
+      debug(`Finding contact ${botUser} with Whatsapp contact search ...`)
 
-    const searchInputElement = await container.findElement('//*[@resource-id="com.whatsapp:id/search_input"]')
-    await searchInputElement.setValue(botUser)
+      const btnSearch = await container.findElement('//*[@resource-id="com.whatsapp:id/menuitem_search"]')
+      await btnSearch.click()
 
-    const ceSel = `//*[@resource-id="com.whatsapp:id/result_list"]//*[@resource-id="com.whatsapp:id/conversations_row_contact_name" and @text="${botUser}"]`
-    debug(`Finding contact ${botUser}: ${ceSel}`)
+      const searchInputElement = await container.findElement('//*[@resource-id="com.whatsapp:id/search_input"]')
+      await searchInputElement.setValue(botUser)
 
-    const ce = await container.findElement(ceSel)
-    await ce.click()
+      const ceSel = `//*[@resource-id="com.whatsapp:id/result_list"]//*[@resource-id="com.whatsapp:id/conversations_row_contact_name" and @text="${botUser}"]`
+      debug(`Finding contact ${botUser}: ${ceSel}`)
+
+      const ce = await container.findElement(ceSel)
+      await ce.click()
+    }
 
     debug(`Cleaning up chat history for ${botUser} ...`)
 
@@ -53,8 +63,9 @@ module.exports = {
 
     debug(`Cleaning up chat history for ${botUser} ready`)
 
+    const inputElementVisibleTimeout = container.caps.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT || 10000
     const inputElement = await container.findElement(module.exports.WEBDRIVERIO_INPUT_ELEMENT)
-    await inputElement.waitForDisplayed()
+    await inputElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
   },
   WEBDRIVERIO_INPUT_ELEMENT: '//*[@resource-id="com.whatsapp:id/entry"]',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: '//*[@resource-id="com.whatsapp:id/send"]',
