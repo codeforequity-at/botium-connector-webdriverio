@@ -6,6 +6,7 @@ services:
     ports:
       - "6080:6080"
       - "4723:4723"
+      - "5555:5555"
     environment:
       - DEVICE=Samsung Galaxy S8
       - APPIUM=true

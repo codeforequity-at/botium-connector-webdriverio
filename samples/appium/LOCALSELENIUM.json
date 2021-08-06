@@ -1,0 +1,11 @@
+[
+  {
+      "name": "Samsung Galaxy S8 Emulator",
+      "value": {
+          "type": "MOBILEAPP",
+          "capabilities": {
+              "appium:platformName": "Android"
+          }
+      }
+  }
+]

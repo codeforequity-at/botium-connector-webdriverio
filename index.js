@@ -426,6 +426,7 @@ class BotiumConnectorWebdriverIO {
   async Validate () {
     debug('Validate called')
 
+    let profileCapabilityNames = []
     if (this.caps[Capabilities.WEBDRIVERIO_PROFILE]) {
       const profile = profiles[this.caps[Capabilities.WEBDRIVERIO_PROFILE]]
       if (!profile) throw new Error('WEBDRIVERIO_PROFILE capability invalid')
@@ -434,6 +435,7 @@ class BotiumConnectorWebdriverIO {
         await profile.VALIDATE(this)
         delete profile.VALIDATE
       }
+      profileCapabilityNames = Object.keys(profile)
       this.caps = Object.assign(this.caps, profile)
     }
 
@@ -450,11 +452,11 @@ class BotiumConnectorWebdriverIO {
     if (!_.has(this.caps, Capabilities.WEBDRIVERIO_OUTPUT_XPATH)) {
       this.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH] = this.isAppium()
     }
-    this.openBrowser = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBROWSER, openBrowserDefault)
-    this.openBot = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBOT, openBotDefault)
-    this.sendToBot = this._loadFunction(Capabilities.WEBDRIVERIO_SENDTOBOT, sendToBotDefault)
-    this.receiveFromBot = this._loadFunction(Capabilities.WEBDRIVERIO_RECEIVEFROMBOT, receiveFromBotDefault)
-    this.getBotMessage = this._loadFunction(Capabilities.WEBDRIVERIO_GETBOTMESSAGE, getBotMessageDefault)
+    this.openBrowser = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBROWSER, openBrowserDefault, profileCapabilityNames)
+    this.openBot = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBOT, openBotDefault, profileCapabilityNames)
+    this.sendToBot = this._loadFunction(Capabilities.WEBDRIVERIO_SENDTOBOT, sendToBotDefault, profileCapabilityNames)
+    this.receiveFromBot = this._loadFunction(Capabilities.WEBDRIVERIO_RECEIVEFROMBOT, receiveFromBotDefault, profileCapabilityNames)
+    this.getBotMessage = this._loadFunction(Capabilities.WEBDRIVERIO_GETBOTMESSAGE, getBotMessageDefault, profileCapabilityNames)
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES] && !_.isNumber(this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES])) throw new Error('WEBDRIVERIO_IGNOREWELCOMEMESSAGES capability requires a number')
 
@@ -835,12 +837,12 @@ class BotiumConnectorWebdriverIO {
     this.queue = null
   }
 
-  _loadFunction (capName, defaultFunction) {
+  _loadFunction (capName, defaultFunction, allowCapabilities) {
     if (!this.caps[capName]) {
       return defaultFunction
     }
 
-    const allowUnsafe = !!this.caps[CoreCapabilities.SECURITY_ALLOW_UNSAFE]
+    const allowUnsafe = (allowCapabilities && allowCapabilities.indexOf(capName) >= 0) || !!this.caps[CoreCapabilities.SECURITY_ALLOW_UNSAFE]
 
     const loadErr = []
     if (allowUnsafe) {
@@ -873,34 +875,36 @@ class BotiumConnectorWebdriverIO {
       }
     }
 
-    try {
-      esprima.parseScript(this.caps[capName])
-      debug(`Loaded Capability ${capName} function as javascript`)
+    if (_.isString(this.caps[capName])) {
+      try {
+        esprima.parseScript(this.caps[capName])
+        debug(`Loaded Capability ${capName} function as javascript`)
 
-      return (container, browser) => {
-        debug(`Running ${capName} function from inline javascript ...`)
-        const sandbox = {
-          container: {
-            caps: { ...container.caps },
-            findElement: (...args) => this.findElement(...args),
-            findElements: (...args) => this.findElements(...args)
-          },
-          browser
+        return (container, browser) => {
+          debug(`Running ${capName} function from inline javascript ...`)
+          const sandbox = {
+            container: {
+              caps: { ...container.caps },
+              findElement: (...args) => this.findElement(...args),
+              findElements: (...args) => this.findElements(...args)
+            },
+            browser
+          }
+          const vm = new NodeVM({
+            eval: false,
+            require: false,
+            sandbox
+          })
+          const r = vm.run(this.caps[capName])
+          if (_.isFunction(r)) {
+            return r(sandbox.container, sandbox.browser)
+          } else {
+            return r
+          }
         }
-        const vm = new NodeVM({
-          eval: false,
-          require: false,
-          sandbox
-        })
-        const r = vm.run(this.caps[capName])
-        if (_.isFunction(r)) {
-          return r(sandbox.container, sandbox.browser)
-        } else {
-          return r
-        }
+      } catch (err) {
+        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
       }
-    } catch (err) {
-      loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
     }
 
     loadErr.forEach(d => debug(d))
