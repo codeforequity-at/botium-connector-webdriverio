@@ -1,0 +1,19 @@
+{
+  "botium": {
+    "Capabilities": {
+      "WEBDRIVERIO_OPTIONS": {	
+				"capabilities": {
+          "automationName": "Appium",
+          "model": "Galaxy S8",
+          "securityToken": "..."
+        },
+        "protocol": "https",
+        "hostname": "demo.perfectomobile.com",
+        "port": 443,
+        "path": "/nexperience/perfectomobile/wd/hub"
+      },
+      "WEBDRIVERIO_USE_APPIUM_PREFIX": "",
+      "WEBDRIVERIO_APP": ""
+    }
+  }
+}

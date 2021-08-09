@@ -11,8 +11,9 @@
         "port": 4723,
         "path": "/wd/hub"
       },
-      "WEBDRIVERIO_APP": "https://github.com/sayom88/BotiumApp/raw/main/Expedia_base.apk",
+      "_WEBDRIVERIO_APP": "https://github.com/sayom88/BotiumApp/raw/main/Expedia_base.apk",
       "WEBDRIVERIO_APPPACKAGE": "com.expedia.bookings",
+      "WEBDRIVERIO_APPACTIVITY": "com.expedia.bookings.activity.SearchActivity",
       "WEBDRIVERIO_USE_APPIUM_PREFIX": "appium:",
       "WEBDRIVERIO_APPNORESET": true,
       "WEBDRIVERIO_SKIP_WAITFORCLICKABLE": true,
@@ -40,6 +41,7 @@
       "WEBDRIVERIO_OUTPUT_ELEMENT_TEXT": ".//*[@data-test-id=\"chat-text-message\"]",
       "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "INDEX",
       "WEBDRIVERIO_IGNOREUPFRONTMESSAGES": false,
+      "WEBDRIVERIO_SELENIUM_DEBUG": true,
       "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
     }
   }

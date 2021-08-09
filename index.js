@@ -347,9 +347,12 @@ class BotiumConnectorWebdriverIO {
     return !!(this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE])
   }
 
+  isWeb () {
+    return !this.isAppium() || (this.appiumContext && this.appiumContext.toLowerCase().startsWith('webview'))
+  }
+
   useXpath () {
-    if (!this.isAppium()) return false
-    if (this.appiumContext && this.appiumContext.toLowerCase().startsWith('webview')) return false
+    if (this.isWeb()) return false
     return !!(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH])
   }
 
@@ -395,7 +398,7 @@ class BotiumConnectorWebdriverIO {
         debug(`clickSeries - dumping html #${i + 1}`)
         await this._dumpPageSource('clickSeries', true)
       } else if (clickSelector.startsWith('iframe:')) {
-        debug(`clickSeries - trying to switchto iframe #${i + 1}: ${clickSelector}`)
+        debug(`clickSeries - trying to switch to iframe #${i + 1}: ${clickSelector}`)
 
         const iframeSelector = clickSelector.substring(7)
         if (iframeSelector === 'parent') {
@@ -403,7 +406,11 @@ class BotiumConnectorWebdriverIO {
         } else {
           const iframeElement = await this.findElement(iframeSelector)
           await iframeElement.waitForDisplayed(options)
-          await this.browser.switchToFrame(iframeElement)
+          try {
+            await this.browser.switchToFrame(iframeElement)
+          } catch (err) {
+            await this.browser.switchToFrame(iframeElement.elementId)
+          }
         }
       } else if (clickSelector.startsWith('setvalue:') || clickSelector.startsWith('addvalue:')) {
         const parts = clickSelector.split(':', 3)
@@ -429,14 +436,21 @@ class BotiumConnectorWebdriverIO {
           }
         }
       } else if (clickSelector.startsWith('context:')) {
-        let context = clickSelector.substring(8)
+        let context = clickSelector.substring(13)
         debug(`clickSeries - waiting for context #${i + 1} matching: ${context}`)
         await this.browser.waitUntil(async () => {
           const contexts = await this.browser.getContexts()
-          const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
-          if (matchingContext) {
-            context = matchingContext
-            return true
+          if (_.isNumber(+context)) {
+            if (contexts.length > +context) {
+              context = contexts[+context]
+              return true
+            }
+          } else {
+            const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
+            if (matchingContext) {
+              context = matchingContext
+              return true
+            }
           }
           return false
         }, { timeout: options.timeout, timeoutMsg: `Context ${context} not available` })
@@ -1012,11 +1026,13 @@ class BotiumConnectorWebdriverIO {
 
     let html = null
     const htmlErr = []
-    try {
-      const root = await this.findElement('//body')
-      html = await root.getHTML()
-    } catch (err) {
-      htmlErr.push(err.message)
+    if (this.isWeb()) {
+      try {
+        const root = await this.findElement('//body')
+        html = await root.getHTML()
+      } catch (err) {
+        htmlErr.push(err.message)
+      }
     }
     if (!html) {
       try {

@@ -2,11 +2,13 @@
   "name": "expedia",
   "version": "1.0.0",
   "scripts": {
-    "test": "mocha spec"
+    "test": "mocha spec",
+    "test-perfectolabs": "cross-env BOTIUM_CONFIG=botium-perfectolabs.json mocha spec"
   },
   "devDependencies": {
     "botium-bindings": "latest",
     "botium-connector-webdriverio": "../../",
+    "cross-env": "latest",
     "mocha": "latest"
   },
   "botium": {

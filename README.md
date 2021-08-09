@@ -385,7 +385,7 @@ Implicit timeout for all element locators
 A list of [Webdriver selectors](https://webdriver.io/docs/selectors.html) for clickable elements which will be clicked one after the other to navigate to the actual chatbot widget.
 
 Special meaning for Hybrid smartphone apps:
-* Starting a selector with _context:_ will switch the context to an embedded webview, for example _context:webview_
+* Starting a selector with _context:_ will switch the context to an embedded webview, for example _context:webview_ (for a named context) or _context:1_ (by index)
 
 Special meaning for iFrame navigation:
 * Starting a selector with _iframe:_ will switch all subsequent selectors to the iFrame selected by the selector
