@@ -1,0 +1,16 @@
+button
+
+#bot
+Hi, I'm your Virtual Travel Agent.
+
+#bot
+What would you like to do?
+
+#me
+BUTTON Get refund status
+
+#bot
+Refunds are taking longer than normal
+
+#bot
+What's the email address or phone number for this booking?

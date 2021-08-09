@@ -384,6 +384,9 @@ Implicit timeout for all element locators
 ### WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS
 A list of [Webdriver selectors](https://webdriver.io/docs/selectors.html) for clickable elements which will be clicked one after the other to navigate to the actual chatbot widget.
 
+Special meaning for Hybrid smartphone apps:
+* Starting a selector with _context:_ will switch the context to an embedded webview, for example _context:webview_
+
 Special meaning for iFrame navigation:
 * Starting a selector with _iframe:_ will switch all subsequent selectors to the iFrame selected by the selector
 * Switching back to the iFrame parent can be done with the selector with _iframe:parent_
@@ -392,6 +395,10 @@ Special meaning for form field input:
 * Starting a selector with _setvalue:_ will set the value of an input field. Value and input field selector are part of the element: _setvalue:value-to-set:my-field-selector_
 * Starting a selector with _addvalue:_ will append the value to an input field. Value and input field selector are part of the element: _addvalue:value-to-append:my-field-selector_
 * When using _Enter_ as value then the Enter key will be sent instead
+
+Other special meaning:
+* _pause:1000_ will pause for 1 second (1000ms)
+* _dumphtml_ will dump the current page source to the botiumwork directory
 
 ### WEBDRIVERIO_INPUT_ELEMENT
 [Webdriver selector](https://webdriver.io/docs/selectors.html) for the input text field

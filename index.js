@@ -1,5 +1,6 @@
 const util = require('util')
 const path = require('path')
+const fs = require('fs')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
 const esprima = require('esprima')
@@ -158,7 +159,7 @@ const sendToBotDefault = async (container, browser, msg) => {
     qrView.button.textlowerconcat = qrView.button.textlower && (qrView.button.textlower.indexOf('\'') < 0 ? `'${qrView.button.textlower}'` : `concat('${qrView.button.textlower.replace(/'/g, '\',"\'",\'')}')`)
     qrView.button.payloadlowerconcat = qrView.button.payloadlower && (qrView.button.payloadlower.indexOf('\'') < 0 ? `'${qrView.button.payloadlower}'` : `concat('${qrView.button.payloadlower.replace(/'/g, '\',"\'",\'')}')`)
 
-    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()]'
+    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //*[@role="button" and contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()]'
     const qrSelector = Mustache.render(qrSelectorTemplate, qrView)
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
@@ -188,7 +189,7 @@ const sendToBotDefault = async (container, browser, msg) => {
 
 const receiveFromBotDefault = async (container, browser) => {
   let r = null
-  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH]) {
+  if (container.useXpath()) {
     const xml = await browser.getPageSource()
     const doc = new DOMParser().parseFromString(xml)
 
@@ -253,7 +254,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId, html } }
   botMsg.messageText = await _getTextFromElement(container, browser, element)
 
-  const buttonsSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href]')
+  const buttonsSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href] | .//*[@role="button"]')
   if (buttonsSelector) {
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE]) {
       await browser.pause(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE])
@@ -338,10 +339,18 @@ class BotiumConnectorWebdriverIO {
     this.caps = caps
     this.handledElement = []
     this.screenshotCounterBySection = {}
+    this.sourceCounterBySection = {}
+    this.appiumContext = null
   }
 
   isAppium () {
     return !!(this.caps[Capabilities.WEBDRIVERIO_APPPACKAGE])
+  }
+
+  useXpath () {
+    if (!this.isAppium()) return false
+    if (this.appiumContext && this.appiumContext.toLowerCase().startsWith('webview')) return false
+    return !!(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH])
   }
 
   async waitAndClickOn (clickElement, options = {}) {
@@ -377,7 +386,15 @@ class BotiumConnectorWebdriverIO {
       clickSelectors = [clickSelectors]
     }
     for (const [i, clickSelector] of clickSelectors.entries()) {
-      if (clickSelector.startsWith('iframe:')) {
+      if (clickSelector.startsWith('pause:')) {
+        debug(`clickSeries - pausing #${i + 1}: ${clickSelector}`)
+
+        const pause = clickSelector.substring(6)
+        await this.browser.pause(pause)
+      } else if (clickSelector === 'dumphtml') {
+        debug(`clickSeries - dumping html #${i + 1}`)
+        await this._dumpPageSource('clickSeries', true)
+      } else if (clickSelector.startsWith('iframe:')) {
         debug(`clickSeries - trying to switchto iframe #${i + 1}: ${clickSelector}`)
 
         const iframeSelector = clickSelector.substring(7)
@@ -411,6 +428,21 @@ class BotiumConnectorWebdriverIO {
             await inputElement.addValue([...value])
           }
         }
+      } else if (clickSelector.startsWith('context:')) {
+        let context = clickSelector.substring(8)
+        debug(`clickSeries - waiting for context #${i + 1} matching: ${context}`)
+        await this.browser.waitUntil(async () => {
+          const contexts = await this.browser.getContexts()
+          const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
+          if (matchingContext) {
+            context = matchingContext
+            return true
+          }
+          return false
+        }, { timeout: options.timeout, timeoutMsg: `Context ${context} not available` })
+        debug(`clickSeries - trying to switch context #${i + 1}: ${context}`)
+        await this.browser.switchContext(context)
+        this.appiumContext = context
       } else {
         debug(`clickSeries - trying to click on element #${i + 1}: ${clickSelector}`)
         try {
@@ -419,6 +451,9 @@ class BotiumConnectorWebdriverIO {
         } catch (err) {
           debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
         }
+      }
+      if (clickSelector !== 'dumphtml' && !clickSelector.startsWith('pause:')) {
+        await this._dumpPageSource('clickSeries')
       }
     }
   }
@@ -673,6 +708,7 @@ class BotiumConnectorWebdriverIO {
         debug(`Pausing after input for ${inputPause}ms`)
         await new Promise((resolve) => setTimeout(resolve, inputPause))
       }
+      await this._dumpPageSource('usersays')
     })
   }
 
@@ -704,14 +740,20 @@ class BotiumConnectorWebdriverIO {
   async Stop () {
     debug('Stop called')
 
-    if (this.browser && this.eventEmitter && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
-      await this._runInQueue(async () => {
-        const screenshot = await this._takeScreenshot('onstop')
-        if (screenshot) {
-          this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
-        }
-      })
+    if (this.browser && this.queue) {
+      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
+        await this._runInQueue(async () => {
+          const screenshot = await this._takeScreenshot('onstop')
+          if (screenshot && this.eventEmitter) {
+            this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+          }
+        })
+      }
+      if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
+        await this._runInQueue(async () => this._dumpPageSource('stop'))
+      }
     }
+
     await this._stopBrowser()
     this.stopped = true
   }
@@ -963,6 +1005,51 @@ class BotiumConnectorWebdriverIO {
       this.screenshotCounterBySection[section] = 1
     }
     return this.screenshotCounterBySection[section]
+  }
+
+  async _dumpPageSource (section, force = false) {
+    if (!force && !this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) return
+
+    let html = null
+    const htmlErr = []
+    try {
+      const root = await this.findElement('//body')
+      html = await root.getHTML()
+    } catch (err) {
+      htmlErr.push(err.message)
+    }
+    if (!html) {
+      try {
+        html = await this.browser.getPageSource()
+      } catch (err) {
+        htmlErr.push(err.message)
+      }
+    }
+    if (html) {
+      try {
+        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._sourceSectionCounter(section)}_.txt`)
+        fs.writeFileSync(filename, html)
+      } catch (err) {
+        debug(`Failed to write HTML page source: ${err}`)
+      }
+      if (this.eventEmitter) {
+        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, {
+          base64: Buffer.from(html).toString('base64'),
+          mimeType: 'text/plain'
+        })
+      }
+    } else if (htmlErr.length > 0) {
+      htmlErr.forEach(err => debug(`Failed to retrieve HTML page source: ${err}`))
+    }
+  }
+
+  _sourceSectionCounter (section) {
+    if (Object.prototype.hasOwnProperty.call(this.sourceCounterBySection, section)) {
+      this.sourceCounterBySection[section]++
+    } else {
+      this.sourceCounterBySection[section] = 1
+    }
+    return this.sourceCounterBySection[section]
   }
 }
 

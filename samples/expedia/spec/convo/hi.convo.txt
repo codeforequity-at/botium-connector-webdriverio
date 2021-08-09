@@ -1,0 +1,13 @@
+hi
+
+#bot
+Hi, I'm your Virtual Travel Agent.
+
+#bot
+What would you like to do?
+
+#me
+hi
+
+#bot
+Hi, how can I help?

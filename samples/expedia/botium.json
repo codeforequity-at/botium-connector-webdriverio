@@ -1,0 +1,46 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Expedia Sample",
+      "CONTAINERMODE": "webdriverio",
+      "CLEANUPTEMPDIR": false,
+      "WEBDRIVERIO_OPTIONS": {
+				"capabilities": {
+          "platformName": "Android"
+        },
+        "port": 4723,
+        "path": "/wd/hub"
+      },
+      "WEBDRIVERIO_APP": "https://github.com/sayom88/BotiumApp/raw/main/Expedia_base.apk",
+      "WEBDRIVERIO_APPPACKAGE": "com.expedia.bookings",
+      "WEBDRIVERIO_USE_APPIUM_PREFIX": "appium:",
+      "WEBDRIVERIO_APPNORESET": true,
+      "WEBDRIVERIO_SKIP_WAITFORCLICKABLE": true,
+      "WEBDRIVERIO_IMPLICIT_TIMEOUT": 10000,
+      "__WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
+        "//*[@resource-id=\"com.expedia.bookings:id/button_next\"]",
+        "//*[@resource-id=\"com.expedia.bookings:id/button_next\"]",
+        "//*[@resource-id=\"com.expedia.bookings:id/button_final\"]",
+        "//*[@content-desc=\"Close\"]",
+        "//*[@resource-id=\"com.android.permissioncontroller:id/permission_allow_foreground_only_button\"]",
+        "//*[@resource-id=\"com.expedia.bookings:id/chat_bot_fab\"]",
+        "context:WEBVIEW",
+        "iframe://iframe"
+      ],
+      "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
+        "//*[@resource-id=\"com.expedia.bookings:id/chat_bot_fab\"]",
+        "context:WEBVIEW",
+        "iframe://iframe"
+      ],
+      "WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT": 20000,
+      "WEBDRIVERIO_INPUT_ELEMENT": "//*[@data-test-id=\"chat-input-text-box\"]",
+      "WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON": "//*[@data-test-id=\"chat-input-send-button\"]",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED": false,
+      "WEBDRIVERIO_OUTPUT_ELEMENT": "//*[contains(@class, \"message-bubble-container\") and not(descendant::div[contains(@class,\"uitk-flex-row-reverse\")])]",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_TEXT": ".//*[@data-test-id=\"chat-text-message\"]",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "INDEX",
+      "WEBDRIVERIO_IGNOREUPFRONTMESSAGES": false,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
+    }
+  }
+}
