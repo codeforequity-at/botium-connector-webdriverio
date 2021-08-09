@@ -436,21 +436,14 @@ class BotiumConnectorWebdriverIO {
           }
         }
       } else if (clickSelector.startsWith('context:')) {
-        let context = clickSelector.substring(13)
+        let context = clickSelector.substring(8)
         debug(`clickSeries - waiting for context #${i + 1} matching: ${context}`)
         await this.browser.waitUntil(async () => {
           const contexts = await this.browser.getContexts()
-          if (_.isNumber(+context)) {
-            if (contexts.length > +context) {
-              context = contexts[+context]
-              return true
-            }
-          } else {
-            const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
-            if (matchingContext) {
-              context = matchingContext
-              return true
-            }
+          const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
+          if (matchingContext) {
+            context = matchingContext
+            return true
           }
           return false
         }, { timeout: options.timeout, timeoutMsg: `Context ${context} not available` })
