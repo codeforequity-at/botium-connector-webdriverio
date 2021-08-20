@@ -3,6 +3,7 @@ const path = require('path')
 const fs = require('fs')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
+const { UNICODE_CHARACTERS } = require('@wdio/utils')
 const esprima = require('esprima')
 const Mustache = require('mustache')
 const crypto = require('crypto')
@@ -144,6 +145,12 @@ const openBotDefault = async (container, browser) => {
   }
 }
 
+const convertToSetValue = (str, includeEnter = false) => {
+  let result = str || ''
+  if (includeEnter) result = result + UNICODE_CHARACTERS.Enter
+  return result
+}
+
 const sendToBotDefault = async (container, browser, msg) => {
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
@@ -177,12 +184,12 @@ const sendToBotDefault = async (container, browser, msg) => {
     await inputElement.waitForEnabled({ timeout: inputElementVisibleTimeout })
     if (inputElementSendButtonSelector) {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Send button ${inputElementSendButtonSelector})`)
-      await inputElement.setValue([...msg.messageText])
+      await inputElement.setValue(convertToSetValue(msg.messageText), { translateToUnicode: false })
       await container.waitAndClickOn(inputElementSendButtonSelector, { timeout: inputElementVisibleTimeout })
       debug(`simulated click on input button ${inputElementSendButtonSelector}`)
     } else {
       debug(`input element ${inputElementSelector} is visible, simulating input: "${msg.messageText}" (with Enter key)`)
-      await inputElement.setValue([...msg.messageText, 'Enter'])
+      await inputElement.setValue(convertToSetValue(msg.messageText, true), { translateToUnicode: false })
     }
   }
 }
@@ -422,17 +429,17 @@ class BotiumConnectorWebdriverIO {
           debug(`clickSeries - trying to set value ${value} #${i + 1}: ${inputElementSelector}`)
           const inputElement = await this.findElement(inputElementSelector)
           if (value === 'Enter') {
-            await inputElement.setValue(['Enter'])
+            await inputElement.setValue(convertToSetValue(null, true), { translateToUnicode: false })
           } else {
-            await inputElement.setValue([...value])
+            await inputElement.setValue(convertToSetValue(value), { translateToUnicode: false })
           }
         } else if (action === 'addvalue') {
           debug(`clickSeries - trying to add value ${value} #${i + 1}: ${inputElementSelector}`)
           const inputElement = await this.findElement(inputElementSelector)
           if (value === 'Enter') {
-            await inputElement.addValue(['Enter'])
+            await inputElement.addValue(convertToSetValue(null, true), { translateToUnicode: false })
           } else {
-            await inputElement.addValue([...value])
+            await inputElement.addValue(convertToSetValue(value), { translateToUnicode: false })
           }
         }
       } else if (clickSelector.startsWith('context:')) {

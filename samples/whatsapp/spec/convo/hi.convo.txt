@@ -1,7 +1,7 @@
 hi
 
 #me
-hi
+hi bot
 
 #bot
 WELCOME TO HEALTH ALERT
