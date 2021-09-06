@@ -511,7 +511,7 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREUPFRONTMESSAGES] && this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES] > 0) throw new Error('WEBDRIVERIO_IGNOREUPFRONTMESSAGES and WEBDRIVERIO_IGNOREWELCOMEMESSAGES are invalid in combination')
 
-    if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"onbotsays"/"onstop"')
+    if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'always', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"always"/"onbotsays"/"onstop"')
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER] && this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       throw new Error('WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_SELENIUM are invalid in combination')
@@ -715,14 +715,27 @@ class BotiumConnectorWebdriverIO {
         debug(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
         throw new Error(`WebDriver error on UserSays: ${err.message || util.inspect(err)}`)
       } finally {
-        if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) await this._saveDebugScreenshot('usersays')
+        if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) await this._saveDebugScreenshot('onusersays')
       }
       const inputPause = this.caps[Capabilities.WEBDRIVERIO_INPUTPAUSE]
       if (inputPause && inputPause > 0) {
         debug(`Pausing after input for ${inputPause}ms`)
         await new Promise((resolve) => setTimeout(resolve, inputPause))
       }
-      await this._dumpPageSource('usersays')
+      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'always') {
+        const screenshot = await this._takeScreenshot('onusersays')
+        if (screenshot) {
+          msg.attachments = msg.attachments || []
+          msg.attachments.push(screenshot)
+        }
+      }
+      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) await this._saveDebugScreenshot('onbotsays')
+
+      const pageSource = await this._dumpPageSource('onusersays')
+      if (pageSource) {
+        msg.attachments = msg.attachments || []
+        msg.attachments.push(pageSource)
+      }
     })
   }
 
@@ -739,7 +752,7 @@ class BotiumConnectorWebdriverIO {
         this.ignoreWelcomeMessagesResolve = null
       }
     } else {
-      if (this.browser && this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays') {
+      if (this.browser && (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onbotsays' || this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'always')) {
         const screenshot = await this._takeScreenshot('onbotsays')
         if (screenshot) {
           msg.attachments = msg.attachments || []
@@ -747,6 +760,11 @@ class BotiumConnectorWebdriverIO {
         }
       }
       if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) await this._saveDebugScreenshot('onbotsays')
+      const pageSource = await this._dumpPageSource('onbotsays')
+      if (pageSource) {
+        msg.attachments = msg.attachments || []
+        msg.attachments.push(pageSource)
+      }
       this.queueBotSays(msg)
     }
   }
@@ -755,7 +773,7 @@ class BotiumConnectorWebdriverIO {
     debug('Stop called')
 
     if (this.browser && this.queue) {
-      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop') {
+      if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop' || this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'always') {
         await this._runInQueue(async () => {
           const screenshot = await this._takeScreenshot('onstop')
           if (screenshot && this.eventEmitter) {
@@ -764,7 +782,12 @@ class BotiumConnectorWebdriverIO {
         })
       }
       if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
-        await this._runInQueue(async () => this._dumpPageSource('stop'))
+        await this._runInQueue(async () => {
+          const dump = await this._dumpPageSource('onstop')
+          if (dump && this.eventEmitter) {
+            this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, dump)
+          }
+        })
       }
     }
 
@@ -982,11 +1005,13 @@ class BotiumConnectorWebdriverIO {
 
   async _takeScreenshot (section) {
     if (this.browser) {
+      const screenshotFileName = `screenshot_${section}_${this._screenshotSectionCounter(section)}_.png`
       try {
-        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        const filename = path.resolve(this.container.tempDirectory, screenshotFileName)
         const buffer = await this.browser.saveScreenshot(filename)
         debug(`Screenshot taken, size ${buffer.length}, saved to ${filename}`)
         return {
+          name: screenshotFileName,
           base64: buffer.toString('base64'),
           mimeType: 'image/png'
         }
@@ -1042,17 +1067,17 @@ class BotiumConnectorWebdriverIO {
       }
     }
     if (html) {
+      const dumpFileName = `pagesource_${section}_${this._sourceSectionCounter(section)}.txt`
       try {
-        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._sourceSectionCounter(section)}_.txt`)
+        const filename = path.resolve(this.container.tempDirectory, dumpFileName)
         fs.writeFileSync(filename, html)
       } catch (err) {
         debug(`Failed to write HTML page source: ${err}`)
       }
-      if (this.eventEmitter) {
-        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, {
-          base64: Buffer.from(html).toString('base64'),
-          mimeType: 'text/plain'
-        })
+      return {
+        name: dumpFileName,
+        base64: Buffer.from(html).toString('base64'),
+        mimeType: 'text/plain'
       }
     } else if (htmlErr.length > 0) {
       htmlErr.forEach(err => debug(`Failed to retrieve HTML page source: ${err}`))
