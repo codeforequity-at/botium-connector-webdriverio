@@ -76,6 +76,12 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_MEDIA',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS',
   WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML: 'WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH',
   WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR: 'WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR',
@@ -171,7 +177,7 @@ const sendToBotDefault = async (container, browser, msg) => {
     debug(`Waiting for button element to be visible: ${qrSelector}`)
 
     await container.waitAndClickOn(qrSelector, { timeout: inputElementVisibleTimeout })
-    debug(`simluated click on button ${qrSelector}`)
+    debug(`simulated click on button ${qrSelector}`)
   } else {
     const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
     if (!inputElementSelector) {
@@ -239,18 +245,57 @@ const _isNested = (container, capName, def) => {
 const _getTextFromElement = async (container, browser, element) => {
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
-      const textElement = await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
-      if (textElement) {
-        return textElement.getText()
+      try {
+        return await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText()
+      } catch (err) {
+        debug('_getTextFromElement textElement.getText failed', err.message)
       }
     } else {
-      const textElement = await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT])
-      if (textElement) {
-        return textElement.getText()
+      try {
+        return await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText()
+      } catch (err) {
+        debug('_getTextFromElement textElement.getText failed', err.message)
       }
     }
   } else {
     return element.getText()
+  }
+}
+const _getButtonFromElement = async (container, browser, buttonElement) => {
+  if (buttonElement) {
+    const buttonElementText = await buttonElement.getText()
+    if (buttonElementText) {
+      const button = {
+        text: buttonElementText
+      }
+      const buttonHrefValue = await buttonElement.getAttribute('href')
+      if (buttonHrefValue) {
+        button.payload = buttonHrefValue
+      } else {
+        const buttonHtml = await buttonElement.getHTML()
+        if (buttonHtml) {
+          const foundLink = buttonHtml.match(urlRegexp)
+          if (foundLink && foundLink.length > 0) {
+            button.payload = foundLink[0]
+          }
+        }
+      }
+      return button
+    }
+  }
+}
+
+const _getMediaFromElement = async (container, browser, mediaElement) => {
+  if (mediaElement) {
+    const mediaSrcValue = await mediaElement.getAttribute('src')
+    if (mediaSrcValue) {
+      const mediaAltValue = await mediaElement.getAttribute('alt')
+      return {
+        mediaUri: mediaSrcValue,
+        mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
+        altText: mediaAltValue
+      }
+    }
   }
 }
 
@@ -261,7 +306,61 @@ const getBotMessageDefault = async (container, browser, element, html) => {
   const botMsg = { sender: 'bot', sourceData: { elementId: element.ELEMENT || element.elementId, html } }
   botMsg.messageText = await _getTextFromElement(container, browser, element)
 
-  const buttonsSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS] || './/button | .//a[@href] | .//*[@role="button"]')
+  if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD]) {
+    if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE]) {
+      await browser.pause(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE])
+    }
+    const cardElements = await element.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD])
+    for (const cardElement of (cardElements || [])) {
+      const card = {}
+
+      if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT]) {
+        try {
+          card.text = await cardElement.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT]).getText()
+        } catch (err) {
+        }
+      } else {
+        card.text = await cardElement.getText()
+      }
+      if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT]) {
+        try {
+          card.subtext = await cardElement.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT]).getText()
+        } catch (err) {
+        }
+      }
+      if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS]) {
+        const buttonElements = await cardElement.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS])
+        for (const buttonElement of (buttonElements || [])) {
+          const button = await _getButtonFromElement(container, browser, buttonElement)
+          if (button) {
+            card.buttons = card.buttons || []
+            card.buttons.push(button)
+          }
+        }
+      }
+      if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_MEDIA]) {
+        const mediaElements = await cardElement.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_MEDIA])
+        for (const mediaElement of (mediaElements || [])) {
+          const media = await _getMediaFromElement(container, browser, mediaElement)
+          if (media) {
+            card.media = card.media || []
+            card.media.push(media)
+          }
+        }
+      }
+      botMsg.cards = botMsg.cards || []
+      botMsg.cards.push(card)
+    }
+  }
+
+  let buttonsSelector = './/button | .//a[@href] | .//*[@role="button"]'
+  if (_.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) {
+    buttonsSelector = null
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) {
+    buttonsSelector = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD]) {
+    buttonsSelector = null
+  }
   if (buttonsSelector) {
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE]) {
       await browser.pause(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_PAUSE])
@@ -284,31 +383,22 @@ const getBotMessageDefault = async (container, browser, element, html) => {
     }
 
     for (const buttonElement of (buttonElements || [])) {
-      const buttonElementText = await buttonElement.getText()
-      if (buttonElementText) {
-        const button = {
-          text: buttonElementText
-        }
-        const buttonHrefValue = await buttonElement.getAttribute('href')
-        if (buttonHrefValue) {
-          button.payload = buttonHrefValue
-        } else {
-          const buttonHtml = await buttonElement.getHTML()
-          if (buttonHtml) {
-            const foundLink = buttonHtml.match(urlRegexp)
-            if (foundLink && foundLink.length > 0) {
-              button.payload = foundLink[0]
-            }
-          }
-        }
-
+      const button = await _getButtonFromElement(container, browser, buttonElement)
+      if (button) {
         botMsg.buttons = botMsg.buttons || []
         botMsg.buttons.push(button)
       }
     }
   }
 
-  const mediaSelector = _.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] ? null : (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA] || './/img | .//video | .//audio')
+  let mediaSelector = './/img | .//video | .//audio'
+  if (_.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) {
+    mediaSelector = null
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) {
+    mediaSelector = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD]) {
+    mediaSelector = null
+  }
   if (mediaSelector) {
     if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE]) {
       await browser.pause(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE])
@@ -321,20 +411,15 @@ const getBotMessageDefault = async (container, browser, element, html) => {
       mediaElements = await container.findElements(mediaSelector)
     }
     for (const mediaElement of (mediaElements || [])) {
-      const mediaSrcValue = await mediaElement.getAttribute('src')
-      if (mediaSrcValue) {
-        const mediaAltValue = await mediaElement.getAttribute('alt')
+      const media = await _getMediaFromElement(container, browser, mediaElement)
+      if (media) {
         botMsg.media = botMsg.media || []
-        botMsg.media.push({
-          mediaUri: mediaSrcValue,
-          mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
-          altText: mediaAltValue
-        })
+        botMsg.media.push(media)
       }
     }
   }
 
-  if (botMsg.messageText || (botMsg.buttons && botMsg.buttons.length > 0) || (botMsg.media && botMsg.media.length > 0) || !container.caps[Capabilities.WEBDRIVERIO_IGNOREEMPTYMESSAGES]) return container.BotSays(botMsg)
+  if (botMsg.messageText || (botMsg.buttons && botMsg.buttons.length > 0) || (botMsg.media && botMsg.media.length > 0) || (botMsg.cards && botMsg.cards.length > 0) || !container.caps[Capabilities.WEBDRIVERIO_IGNOREEMPTYMESSAGES]) return container.BotSays(botMsg)
   else debug(`getBotMessageDefault ignoring empty element ${element.ELEMENT || element.elementId}`)
 }
 
@@ -880,6 +965,7 @@ class BotiumConnectorWebdriverIO {
           }
         } catch (err) {
           debug(`Failed in getBotMessage, skipping: ${err}`)
+          console.log(err)
         }
       }
     } catch (err) {
@@ -965,7 +1051,10 @@ class BotiumConnectorWebdriverIO {
             container: {
               caps: { ...container.caps },
               findElement: (...args) => this.findElement(...args),
-              findElements: (...args) => this.findElements(...args)
+              findElements: (...args) => this.findElements(...args),
+              clickSeries: (...args) => this.clickSeries(...args),
+              waitAndClickOn: (...args) => this.waitAndClickOn(...args),
+              BotSays: (...args) => this.BotSays(...args)
             },
             browser
           }
