@@ -77,6 +77,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD',
+  WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT',
@@ -157,6 +158,9 @@ const convertToSetValue = (str, includeEnter = false) => {
   return result
 }
 
+const LOWERCASE = (element = '.') => `translate(${element}, 'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ','abcdefghijklmnopqrstuvwxyzäöü')`
+const CONTAINS_PREPARE = (text) => text ? text.indexOf('\'') < 0 ? `'${text}'` : `concat('${text.replace(/'/g, '\',"\'",\'')}')` : '\'\''
+
 const sendToBotDefault = async (container, browser, msg) => {
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
@@ -167,17 +171,24 @@ const sendToBotDefault = async (container, browser, msg) => {
         payload: msg.buttons[0].payload || msg.buttons[0].text
       }
     }
-    qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
-    qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
-    qrView.button.textlowerconcat = qrView.button.textlower && (qrView.button.textlower.indexOf('\'') < 0 ? `'${qrView.button.textlower}'` : `concat('${qrView.button.textlower.replace(/'/g, '\',"\'",\'')}')`)
-    qrView.button.payloadlowerconcat = qrView.button.payloadlower && (qrView.button.payloadlower.indexOf('\'') < 0 ? `'${qrView.button.payloadlower}'` : `concat('${qrView.button.payloadlower.replace(/'/g, '\',"\'",\'')}')`)
 
-    const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || '//button[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //a[contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()] | //*[@role="button" and contains(translate(., \'ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ\',\'abcdefghijklmnopqrstuvwxyzäöü\'),{{button.textlowerconcat}})][last()]'
-    const qrSelector = Mustache.render(qrSelectorTemplate, qrView)
-    debug(`Waiting for button element to be visible: ${qrSelector}`)
+    let qrSelector = null
+    if (qrView.button.payload && qrView.button.payload.toLowerCase().startsWith('click:')) {
+      qrSelector = qrView.button.payload.substring(6)
+    } else {
+      qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
+      qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
+      qrView.button.textlowerconcat = qrView.button.textlower && CONTAINS_PREPARE(qrView.button.textlower)
+      qrView.button.payloadlowerconcat = qrView.button.payloadlower && CONTAINS_PREPARE(qrView.button.payloadlower)
 
-    await container.waitAndClickOn(qrSelector, { timeout: inputElementVisibleTimeout })
-    debug(`simulated click on button ${qrSelector}`)
+      const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || `//button[contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()] | //a[contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()] | //*[@role="button" and contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()]`
+      qrSelector = Mustache.render(qrSelectorTemplate, qrView)
+    }
+    if (qrSelector) {
+      debug(`Waiting for button element to be visible: ${qrSelector}`)
+      await container.waitAndClickOn(qrSelector, { timeout: inputElementVisibleTimeout })
+      debug(`simulated click on button ${qrSelector}`)
+    }
   } else {
     const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
     if (!inputElementSelector) {
@@ -328,11 +339,18 @@ const getBotMessageDefault = async (container, browser, element, html) => {
         } catch (err) {
         }
       }
+      let cardKey = null
+      if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE]) {
+        cardKey = await cardElement.getAttribute(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE])
+      }
       if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS]) {
         const buttonElements = await cardElement.$$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS])
         for (const buttonElement of (buttonElements || [])) {
           const button = await _getButtonFromElement(container, browser, buttonElement)
           if (button) {
+            if (!button.payload && cardKey) {
+              button.payload = `click://*[@${container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE]}='${cardKey}']//button[contains(., ${CONTAINS_PREPARE(button.text)})][last()]`
+            }
             card.buttons = card.buttons || []
             card.buttons.push(button)
           }
@@ -358,7 +376,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
     buttonsSelector = null
   } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]) {
     buttonsSelector = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS]
-  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD]) {
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD] && botMsg.cards && botMsg.cards.length > 0) {
     buttonsSelector = null
   }
   if (buttonsSelector) {
@@ -396,7 +414,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
     mediaSelector = null
   } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]) {
     mediaSelector = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA]
-  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD]) {
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD] && botMsg.cards && botMsg.cards.length > 0) {
     mediaSelector = null
   }
   if (mediaSelector) {
@@ -481,15 +499,15 @@ class BotiumConnectorWebdriverIO {
       clickSelectors = [clickSelectors]
     }
     for (const [i, clickSelector] of clickSelectors.entries()) {
-      if (clickSelector.startsWith('pause:')) {
+      if (clickSelector.toLowerCase().startsWith('pause:')) {
         debug(`clickSeries - pausing #${i + 1}: ${clickSelector}`)
 
         const pause = clickSelector.substring(6)
         await this.browser.pause(pause)
-      } else if (clickSelector === 'dumphtml') {
+      } else if (clickSelector.toLowerCase() === 'dumphtml') {
         debug(`clickSeries - dumping html #${i + 1}`)
         await this._dumpPageSource('clickSeries', true)
-      } else if (clickSelector.startsWith('iframe:')) {
+      } else if (clickSelector.toLowerCase().startsWith('iframe:')) {
         debug(`clickSeries - trying to switch to iframe #${i + 1}: ${clickSelector}`)
 
         const iframeSelector = clickSelector.substring(7)
@@ -504,7 +522,7 @@ class BotiumConnectorWebdriverIO {
             await this.browser.switchToFrame(iframeElement.elementId)
           }
         }
-      } else if (clickSelector.startsWith('setvalue:') || clickSelector.startsWith('addvalue:')) {
+      } else if (clickSelector.toLowerCase().startsWith('setvalue:') || clickSelector.toLowerCase().startsWith('addvalue:')) {
         const parts = clickSelector.split(':', 3)
         const action = parts[0]
         const value = parts[1]
@@ -527,7 +545,7 @@ class BotiumConnectorWebdriverIO {
             await inputElement.addValue(convertToSetValue(value), { translateToUnicode: false })
           }
         }
-      } else if (clickSelector.startsWith('context:')) {
+      } else if (clickSelector.toLowerCase().startsWith('context:')) {
         let context = clickSelector.substring(8)
         debug(`clickSeries - waiting for context #${i + 1} matching: ${context}`)
         await this.browser.waitUntil(async () => {
@@ -551,7 +569,7 @@ class BotiumConnectorWebdriverIO {
           debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
         }
       }
-      if (clickSelector !== 'dumphtml' && !clickSelector.startsWith('pause:')) {
+      if (clickSelector.toLowerCase() !== 'dumphtml' && !clickSelector.toLowerCase().startsWith('pause:')) {
         await this._dumpPageSource('clickSeries')
       }
     }

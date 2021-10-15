@@ -1,19 +1,19 @@
 hi
 
 #me
-hi bot
+delete session
+PAUSE 5000
 
 #bot
-WELCOME TO HEALTH ALERT
+Session deleted!
+
+#bot
+Bot Rückgabe Daten
+
+#bot
+Die Nachricht wird jetzt beendet
 
 #me
-ALERT
+Hallo
 
 #bot
-You are not signed up to receive alerts.
-
-#me
-0
-
-#bot
-WELCOME TO HEALTH ALERT

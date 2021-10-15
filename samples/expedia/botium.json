@@ -6,7 +6,7 @@
       "CLEANUPTEMPDIR": false,
       "WEBDRIVERIO_OPTIONS": {
 				"capabilities": {
-          "platformName": "Android"
+          "appium:platformName": "Android"
         },
         "port": 4723,
         "path": "/wd/hub"
@@ -30,6 +30,7 @@
       ],
       "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
         "//*[@resource-id=\"com.expedia.bookings:id/chat_bot_fab\"]",
+        "pause:5000",
         "context:WEBVIEW",
         "iframe://iframe"
       ],

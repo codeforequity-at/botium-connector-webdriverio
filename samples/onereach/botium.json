@@ -1,0 +1,24 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample",
+      "CONTAINERMODE": "webdriverio",
+      "CLEANUPTEMPDIR": false,
+      "WEBDRIVERIO_URL": "https://chat.demo.onereach.ai/CukLo1dnQie8zgjo1iRUhw/0xdrzbz?loader=light",
+      "WEBDRIVERIO_INPUT_ELEMENT": "textarea",
+      "WEBDRIVERIO_OUTPUT_ELEMENT": ".message-wrapper--left",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "HASH",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE": "id",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_TEXT": ".message-bubble--has-text",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS": ".buttons-list .rwc-button",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_CARD": ".rwc-card",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE": "value",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT": ".card-labels .rwc-card__label",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT": ".card-labels .rwc-card__description",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_CARD_MEDIA": ".rwc-card__image img",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_CARD_BUTTONS": ".rwc-button",
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS": ["--no-sandbox", "--disable-gpu"]
+    }
+  }
+}
