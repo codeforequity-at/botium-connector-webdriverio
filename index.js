@@ -252,29 +252,30 @@ const _isNested = (container, capName, def) => {
   if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
   return !!container.caps[capName]
 }
+const cleanText = (text) => (text || '').trim().split('\n').join(' ').split('\\n').join(' ')
 
 const _getTextFromElement = async (container, browser, element) => {
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
       try {
-        return await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText()
+        return cleanText(await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText())
       } catch (err) {
         debug('_getTextFromElement textElement.getText failed', err.message)
       }
     } else {
       try {
-        return await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText()
+        return cleanText(await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText())
       } catch (err) {
         debug('_getTextFromElement textElement.getText failed', err.message)
       }
     }
   } else {
-    return element.getText()
+    return cleanText(element.getText())
   }
 }
 const _getButtonFromElement = async (container, browser, buttonElement) => {
   if (buttonElement) {
-    const buttonElementText = await buttonElement.getText()
+    const buttonElementText = cleanText(await buttonElement.getText())
     if (buttonElementText) {
       const button = {
         text: buttonElementText
@@ -300,7 +301,7 @@ const _getMediaFromElement = async (container, browser, mediaElement) => {
   if (mediaElement) {
     const mediaSrcValue = await mediaElement.getAttribute('src')
     if (mediaSrcValue) {
-      const mediaAltValue = await mediaElement.getAttribute('alt')
+      const mediaAltValue = cleanText(await mediaElement.getAttribute('alt'))
       return {
         mediaUri: mediaSrcValue,
         mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
@@ -327,15 +328,15 @@ const getBotMessageDefault = async (container, browser, element, html) => {
 
       if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT]) {
         try {
-          card.text = await cardElement.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT]).getText()
+          card.text = cleanText(await cardElement.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_TEXT]).getText())
         } catch (err) {
         }
       } else {
-        card.text = await cardElement.getText()
+        card.text = cleanText(await cardElement.getText())
       }
       if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT]) {
         try {
-          card.subtext = await cardElement.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT]).getText()
+          card.subtext = cleanText(await cardElement.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD_SUBTEXT]).getText())
         } catch (err) {
         }
       }
