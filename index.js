@@ -252,7 +252,7 @@ const _isNested = (container, capName, def) => {
   if (!Object.prototype.hasOwnProperty.call(container.caps, capName)) return def
   return !!container.caps[capName]
 }
-const cleanText = (text) => (text || '').trim().split('\n').join(' ').split('\\n').join(' ')
+const cleanText = (text) => _.isString(text) ? (text || '').trim().split('\n').join(' ').split('\\n').join(' ') : null
 
 const _getTextFromElement = async (container, browser, element) => {
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
