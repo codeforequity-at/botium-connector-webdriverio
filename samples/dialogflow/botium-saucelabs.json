@@ -1,9 +1,6 @@
 {
   "botium": {
     "Capabilities": {
-      "PROJECTNAME": "WebdriverIO Plugin Sample",
-      "CONTAINERMODE": "webdriverio",
-      "WEBDRIVERIO_URL": "https://console.dialogflow.com/api-client/demo/embedded/d388ac41-5c60-483f-b89b-0ec0d99d848d",
       "WEBDRIVERIO_OPTIONS": {
         "capabilities": {
           "deviceName": "Samsung Galaxy S6 GoogleAPI Emulator",
@@ -19,10 +16,7 @@
         "protocol": "https",
         "hostname": "ondemand.saucelabs.com",
         "port": 443
-      },
-      "WEBDRIVERIO_PROFILE": "dialogflow_com",
-      "WEBDRIVERIO_SCREENSHOTS": "onstop",
-      "SCRIPTING_UTTEXPANSION_MODE": "first"
+      }
     }
   }
 }

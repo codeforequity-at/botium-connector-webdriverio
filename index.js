@@ -270,7 +270,7 @@ const _getTextFromElement = async (container, browser, element) => {
       }
     }
   } else {
-    return cleanText(element.getText())
+    return cleanText(await element.getText())
   }
 }
 const _getButtonFromElement = async (container, browser, buttonElement) => {

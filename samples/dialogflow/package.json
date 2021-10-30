@@ -13,7 +13,7 @@
   },
   "botium": {
     "convodirs": [
-      "spec/convo"
+      "spec/test"
     ],
     "expandConvos": true,
     "expandUtterancesToConvos": false
