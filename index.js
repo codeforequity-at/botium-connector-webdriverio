@@ -702,7 +702,7 @@ class BotiumConnectorWebdriverIO {
       }
 
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
-        const chromeOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS] || ['--headless', '--no-sandbox', '--disable-gpu']
+        const chromeOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS] || ['--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-extensions']
         if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS]) {
           let addOptionsArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS]
           if (_.isString(addOptionsArgs)) {

@@ -575,7 +575,7 @@ _Default args: --port=4444 --url-base=wd/hub_
 Start the a headless Chrome browser automatically with the given args (WEBDRIVERIO_START_CHROMEDRIVER_ARGS). Use the WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS capability to add an additional arg to the default args
 
 ### WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS/WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS
-_Default: ['--headless', '--no-sandbox', '--disable-gpu']_
+_Default: ['--headless', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-extensions']_
 
 Set the options args for chromedriver (WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS). Use the WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_OPTIONS capability to add an additional option arg to the default option args
 
