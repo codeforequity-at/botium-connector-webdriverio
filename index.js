@@ -876,22 +876,33 @@ class BotiumConnectorWebdriverIO {
   async Stop () {
     debug('Stop called')
 
-    if (this.browser && this.queue) {
+    const localScreenshot = async () => {
+      const screenshot = await this._takeScreenshot('onstop')
+      if (screenshot && this.eventEmitter) {
+        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
+      }
+    }
+    const localDump = async () => {
+      const dump = await this._dumpPageSource('onstop')
+      if (dump && this.eventEmitter) {
+        this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, dump)
+      }
+    }
+
+    if (this.browser) {
       if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'onstop' || this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] === 'always') {
-        await this._runInQueue(async () => {
-          const screenshot = await this._takeScreenshot('onstop')
-          if (screenshot && this.eventEmitter) {
-            this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, screenshot)
-          }
-        })
+        if (this.queue) {
+          await this._runInQueue(() => localScreenshot())
+        } else {
+          await localScreenshot()
+        }
       }
       if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML]) {
-        await this._runInQueue(async () => {
-          const dump = await this._dumpPageSource('onstop')
-          if (dump && this.eventEmitter) {
-            this.eventEmitter.emit('MESSAGE_ATTACHMENT', this.container, dump)
-          }
-        })
+        if (this.queue) {
+          await this._runInQueue(() => localDump())
+        } else {
+          await localDump()
+        }
       }
     }
 
