@@ -4,12 +4,8 @@ hello
 
 #bot
 
-#bot
-
 #me
 BUTTON PPP
-
-#bot
 
 #bot
 
