@@ -425,7 +425,7 @@ By default, a button or a hyperlink showing the given text is selected, this sho
 
 For example, if you want to select the button to click based on the _title_ attribute, use this Webdriver selector:
 
-_button[title*='{button.text}']_
+_button[title*='{{button.text}}']_
 
 ### WEBDRIVERIO_INPUTPAUSE
 In some situations it might be required after a user input to wait for a short amount of time to wait for the user interface. In this case you can use this capability to specify an amount of milliseconds to pause execution shortly.

@@ -19,6 +19,7 @@ const debug = require('debug')('botium-connector-webdriverio')
 const { BotiumError, Capabilities: CoreCapabilities } = require('botium-core')
 
 const dialogflowComProfile = require('./profiles/dialogflow_com')
+const dialogflowcxMessengerProfile = require('./profiles/dialogflowcx_messenger')
 const botbuilderWebchatV3Profile = require('./profiles/botbuilder_webchat_v3')
 const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
 const botbuilderWebchatV41Profile = require('./profiles/botbuilder_webchat_v4_10_0')
@@ -27,6 +28,7 @@ const whatsappProfile = require('./profiles/whatsapp')
 
 const profiles = {
   dialogflow_com: dialogflowComProfile,
+  dialogflowcx_messenger: dialogflowcxMessengerProfile,
   botbuilder_webchat_v3: botbuilderWebchatV3Profile,
   botbuilder_webchat_v4: botbuilderWebchatV4Profile,
   botbuilder_webchat_v4_10_0: botbuilderWebchatV41Profile,
@@ -171,23 +173,32 @@ const sendToBotDefault = async (container, browser, msg) => {
         payload: msg.buttons[0].payload || msg.buttons[0].text
       }
     }
+    qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
+    qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
+    qrView.button.textlowerconcat = qrView.button.textlower && CONTAINS_PREPARE(qrView.button.textlower)
+    qrView.button.payloadlowerconcat = qrView.button.payloadlower && CONTAINS_PREPARE(qrView.button.payloadlower)
 
     let qrSelector = null
+    let qrElement = null
     if (qrView.button.payload && qrView.button.payload.toLowerCase().startsWith('click:')) {
       qrSelector = qrView.button.payload.substring(6)
+    } else if (container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON]) {
+      qrSelector = Mustache.render(container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON], qrView)
+    } else if (qrView.button.payload && container.buttonElementsByPayload[qrView.button.payload]) {
+      qrElement = container.buttonElementsByPayload[qrView.button.payload]
+    } else if (qrView.button.text && container.buttonElementsByText[qrView.button.text]) {
+      qrElement = container.buttonElementsByText[qrView.button.text]
     } else {
-      qrView.button.textlower = qrView.button.text && qrView.button.text.toLowerCase()
-      qrView.button.payloadlower = qrView.button.payload && qrView.button.payload.toLowerCase()
-      qrView.button.textlowerconcat = qrView.button.textlower && CONTAINS_PREPARE(qrView.button.textlower)
-      qrView.button.payloadlowerconcat = qrView.button.payloadlower && CONTAINS_PREPARE(qrView.button.payloadlower)
-
-      const qrSelectorTemplate = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_BUTTON] || `//button[contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()] | //a[contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()] | //*[@role="button" and contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()]`
-      qrSelector = Mustache.render(qrSelectorTemplate, qrView)
+      qrSelector = Mustache.render(`//button[contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()] | //a[contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()] | //*[@role="button" and contains(${LOWERCASE('.')},{{button.textlowerconcat}})][last()]`, qrView)
     }
     if (qrSelector) {
       debug(`Waiting for button element to be visible: ${qrSelector}`)
       await container.waitAndClickOn(qrSelector, { timeout: inputElementVisibleTimeout })
       debug(`simulated click on button ${qrSelector}`)
+    } else if (qrElement) {
+      debug(`Clicking on button element: ${qrElement.ELEMENT || qrElement.elementId}`)
+      await (await container.findElement(qrElement)).click()
+      debug(`simulated click on button element ${qrElement.ELEMENT || qrElement.elementId}`)
     }
   } else {
     const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
@@ -292,6 +303,8 @@ const _getButtonFromElement = async (container, browser, buttonElement) => {
           }
         }
       }
+      if (button.text) container.buttonElementsByText[button.text] = buttonElement
+      if (button.payload && _.isString(button.payload)) container.buttonElementsByPayload[button.payload] = buttonElement
       return button
     }
   }
@@ -449,6 +462,8 @@ class BotiumConnectorWebdriverIO {
     this.eventEmitter = eventEmitter
     this.caps = caps
     this.handledElement = []
+    this.buttonElementsByText = {}
+    this.buttonElementsByPayload = {}
     this.screenshotCounterBySection = {}
     this.sourceCounterBySection = {}
     this.appiumContext = null
@@ -669,6 +684,8 @@ class BotiumConnectorWebdriverIO {
     debug('Start called')
     this.stopped = false
     this.handledElements = []
+    this.buttonElementsByText = {}
+    this.buttonElementsByPayload = {}
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
       this.ignoreWelcomeMessageCounter = this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]
@@ -1226,6 +1243,7 @@ module.exports = {
         type: 'choice',
         required: false,
         choices: [
+          { name: 'Google Dialogflow CX Messenger', key: 'dialogflowcx_messenger' },
           { name: 'Google Dialogflow Web Demo', key: 'dialogflow_com' },
           { name: 'MS BotBuilder Webchat (v3)', key: 'botbuilder_webchat_v3' },
           { name: 'MS BotBuilder Webchat (v4)', key: 'botbuilder_webchat_v4' },

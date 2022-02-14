@@ -1,0 +1,14 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "WebdriverIO Plugin Sample Dialogflow Messenger",
+      "CONTAINERMODE": "webdriverio",
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS": ["--no-sandbox", "--disable-gpu"],
+      "WEBDRIVERIO_URL": "https://www.key.com/about/customer-service.jsp",
+      "WEBDRIVERIO_PROFILE": "dialogflowcx_messenger",
+      "WEBDRIVERIO_SCREENSHOTS": "onstop",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
+    }
+  }
+}
