@@ -10,7 +10,7 @@
     "eslint-fix": "eslint --fix index.js profiles/*.js",
     "selenium": "selenium-standalone start",
     "selenium-install": "selenium-standalone install",
-    "update-dependencies": "npm-check-updates --reject chromedriver -u --timeout 120000"
+    "update-dependencies": "npm-check-updates --reject chromedriver,debug -u --timeout 120000"
   },
   "repository": {
     "type": "git",
@@ -44,7 +44,7 @@
     "@babel/runtime": "^7.17.2",
     "better-queue": "^3.8.10",
     "chromedriver": "86.0.0",
-    "debug": "4.3.3",
+    "debug": "4.0.0",
     "esprima": "^4.0.1",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.34",
