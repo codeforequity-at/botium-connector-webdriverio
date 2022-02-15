@@ -8,7 +8,8 @@
       "WEBDRIVERIO_URL": "https://www.key.com/about/customer-service.jsp",
       "WEBDRIVERIO_PROFILE": "dialogflowcx_messenger",
       "WEBDRIVERIO_SCREENSHOTS": "onstop",
-      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true
+      "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": false,
+      "WEBDRIVERIO_SELENIUM_DEBUG": false
     }
   }
 }

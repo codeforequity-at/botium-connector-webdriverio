@@ -1012,7 +1012,6 @@ class BotiumConnectorWebdriverIO {
           }
         } catch (err) {
           debug(`Failed in getBotMessage, skipping: ${err}`)
-          console.log(err)
         }
       }
     } catch (err) {
