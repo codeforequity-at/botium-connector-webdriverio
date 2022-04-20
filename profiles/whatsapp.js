@@ -1,6 +1,7 @@
+const _ = require('lodash')
 const debug = require('debug')('botium-connector-webdriverio-whatsapp')
 
-const whatsappLabels = {
+const _whatsappLabelsByLanguage = {
   de: {
     btnOptions: 'Weitere Optionen',
     btnClean: 'Chat leeren',
@@ -9,21 +10,37 @@ const whatsappLabels = {
   en: {
     btnOptions: 'More options',
     btnClean: 'Clear chat',
-    btnCleanOk: 'CLEAR'
+    btnCleanOk: 'CLEAR CHAT'
   }
+}
+
+const whatsappLabels = (container) => {
+  const labels = {}
+  if (container.caps.WEBDRIVERIO_LANGUAGE && _whatsappLabelsByLanguage[container.caps.WEBDRIVERIO_LANGUAGE]) {
+    Object.assign(labels, _whatsappLabelsByLanguage[container.caps.WEBDRIVERIO_LANGUAGE])
+  }
+  if (container.caps.WEBDRIVERIO_WHATSAPPLABELS) {
+    if (_.isString(container.caps.WEBDRIVERIO_WHATSAPPLABELS)) {
+      Object.assign(labels, JSON.parse(container.caps.WEBDRIVERIO_WHATSAPPLABELS))
+    } else {
+      Object.assign(labels, container.caps.WEBDRIVERIO_WHATSAPPLABELS)
+    }
+  }
+  if (Object.keys(labels).length > 0) return labels
+  else return null
 }
 
 module.exports = {
   VALIDATE: (container) => {
     if (!container.caps.WEBDRIVERIO_CONTACT) throw new Error('Capability WEBDRIVERIO_CONTACT not given')
-    if (!container.caps.WEBDRIVERIO_LANGUAGE || !whatsappLabels[container.caps.WEBDRIVERIO_LANGUAGE]) throw new Error(`Capability WEBDRIVERIO_LANGUAGE invalid, set to one of ${Object.keys(whatsappLabels).join(' / ')}`)
+    if (!whatsappLabels(container)) throw new Error(`Capability WEBDRIVERIO_LANGUAGE/WEBDRIVERIO_WHATSAPPLABELS invalid, set language to one of ${Object.keys(_whatsappLabelsByLanguage).join(' / ')}, or WEBDRIVERIO_WHATSAPPLABELS`)
   },
   WEBDRIVERIO_APPPACKAGE: 'com.whatsapp',
   WEBDRIVERIO_APPACTIVITY: 'com.whatsapp.HomeActivity',
   WEBDRIVERIO_APPNORESET: true,
   WEBDRIVERIO_OPENBOT: async (container) => {
     const botUser = container.caps.WEBDRIVERIO_CONTACT
-    const labels = whatsappLabels[container.caps.WEBDRIVERIO_LANGUAGE]
+    const labels = whatsappLabels(container)
 
     try {
       const celSel = `//*[@resource-id="com.whatsapp:id/conversations_row_contact_name" and @text="${botUser}"]`

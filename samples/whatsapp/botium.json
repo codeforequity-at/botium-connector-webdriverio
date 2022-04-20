@@ -15,7 +15,12 @@
       "WEBDRIVERIO_CONTACT": "Tobi Preprod",
       "WEBDRIVERIO_LANGUAGE": "en",
       "WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": false,
-      "WEBDRIVERIO_SELENIUM_DEBUG": false
+      "WEBDRIVERIO_SELENIUM_DEBUG": false,
+      "__WEBDRIVERIO_WHATSAPPLABELS": {
+        "btnOptions": "More options",
+        "btnClean": "Clear chat",
+        "btnCleanOk": "CLEAR CHAT"
+      }
     }
   }
 }
