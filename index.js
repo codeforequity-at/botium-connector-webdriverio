@@ -599,12 +599,13 @@ class BotiumConnectorWebdriverIO {
       const profile = profiles[this.caps[Capabilities.WEBDRIVERIO_PROFILE]]
       if (!profile) throw new Error('WEBDRIVERIO_PROFILE capability invalid')
 
-      if (profile.VALIDATE) {
-        await profile.VALIDATE(this)
-        delete profile.VALIDATE
+      const cleanedProfile = _.omit(profile, Object.keys(this.caps))
+      if (cleanedProfile.VALIDATE) {
+        await cleanedProfile.VALIDATE(this)
+        delete cleanedProfile.VALIDATE
       }
-      profileCapabilityNames = Object.keys(profile)
-      this.caps = Object.assign(this.caps, profile)
+      profileCapabilityNames = Object.keys(cleanedProfile)
+      this.caps = Object.assign(this.caps, cleanedProfile)
     }
 
     if (!this.caps[Capabilities.WEBDRIVERIO_OPTIONS] && !this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) throw new Error('WEBDRIVERIO_OPTIONS capability required (except when using WEBDRIVERIO_START_CHROMEDRIVER)')
