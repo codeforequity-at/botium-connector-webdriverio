@@ -78,6 +78,9 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_MEDIA_PAUSE',
+  WEBDRIVERIO_OUTPUT_ELEMENT_FORMS: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS',
+  WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_NESTED',
+  WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_PAUSE',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE',
@@ -166,6 +169,37 @@ const CONTAINS_PREPARE = (text) => text ? text.indexOf('\'') < 0 ? `'${text}'` :
 const sendToBotDefault = async (container, browser, msg) => {
   const inputElementVisibleTimeout = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT] || 10000
 
+  if (msg.forms && msg.forms.length > 0) {
+    for (const form of msg.forms) {
+      if (!form.value) continue
+
+      let formElementSelector = null
+      let formElement = null
+      if (container.formElementsById[form.name]) {
+        formElement = container.formElementsById[form.name]
+      } else if (container.formElementsByName[form.name]) {
+        formElement = container.formElementsByName[form.name]
+      } else {
+        formElementSelector = `//[@id='#${form.name}'][last()] | //[@name='${form.name}'][last()]`
+      }
+      if (formElementSelector) {
+        debug(`Using form element: ${formElementSelector}`)
+        formElement = await container.findElement(formElementSelector)
+      } else if (formElement) {
+        debug(`Using form element: ${formElement.ELEMENT || formElement.elementId}`)
+        formElement = await container.findElement(formElement)
+      }
+      const formTagName = await formElement.getTagName()
+
+      if (formTagName && formTagName === 'select') {
+        debug(`Setting select element option for ${form.name}: ${form.value}`)
+        await formElement.selectByAttribute('value', form.value)
+      } else {
+        debug(`Setting input element value for ${form.name}: ${form.value}`)
+        await formElement.setValue(convertToSetValue(form.value), { translateToUnicode: false })
+      }
+    }
+  }
   if (msg.buttons && msg.buttons.length > 0) {
     const qrView = {
       button: {
@@ -267,17 +301,23 @@ const cleanText = (text) => _.isString(text) ? text.trim().split('\n').join(' ')
 
 const _getTextFromElement = async (container, browser, element) => {
   if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) {
+    const trySelectors = _.isArray(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]) ? container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT] : [container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]]
+
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
-      try {
-        return cleanText(await element.$(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText())
-      } catch (err) {
-        debug('_getTextFromElement textElement.getText failed', err.message)
+      for (const sel of trySelectors) {
+        try {
+          return cleanText(await element.$(sel).getText())
+        } catch (err) {
+          debug('_getTextFromElement textElement.getText failed', err.message)
+        }
       }
     } else {
-      try {
-        return cleanText(await container.findElement(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT]).getText())
-      } catch (err) {
-        debug('_getTextFromElement textElement.getText failed', err.message)
+      for (const sel of trySelectors) {
+        try {
+          return cleanText(await container.findElement(sel).getText())
+        } catch (err) {
+          debug('_getTextFromElement textElement.getText failed', err.message)
+        }
       }
     }
   } else {
@@ -319,6 +359,39 @@ const _getMediaFromElement = async (container, browser, mediaElement) => {
         mediaUri: mediaSrcValue,
         mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
         altText: mediaAltValue
+      }
+    }
+  }
+}
+
+const _getFormFromElement = async (container, browser, formElement) => {
+  if (formElement) {
+    const formTagName = await formElement.getTagName()
+    const formId = await formElement.getAttribute('id')
+    const formName = await formElement.getAttribute('name')
+
+    if (formId) container.formElementsById[formId] = formElement
+    if (formName) container.formElementsByName[formName] = formElement
+
+    if (formTagName && (formId || formName) && formTagName === 'select') {
+      const result = {
+        name: formId || formName,
+        label: formName || formId,
+        type: 'ChoiceSet',
+        options: []
+      }
+      const optionElements = await formElement.$$('option')
+      for (const optionElement of (optionElements || [])) {
+        const optionName = cleanText(await optionElement.getText())
+        const optionValue = cleanText(await optionElement.getAttribute('value'))
+        result.options.push({ title: optionName, value: optionValue })
+      }
+      return result
+    } else {
+      return {
+        name: formId || formName,
+        label: formName || formId,
+        type: 'Text'
       }
     }
   }
@@ -451,7 +524,34 @@ const getBotMessageDefault = async (container, browser, element, html) => {
     }
   }
 
-  if (botMsg.messageText || (botMsg.buttons && botMsg.buttons.length > 0) || (botMsg.media && botMsg.media.length > 0) || (botMsg.cards && botMsg.cards.length > 0) || !container.caps[Capabilities.WEBDRIVERIO_IGNOREEMPTYMESSAGES]) return container.BotSays(botMsg)
+  let formsSelector = './/select | .//input'
+  if (_.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]) {
+    formsSelector = null
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]) {
+    formsSelector = container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]
+  } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_CARD] && botMsg.cards && botMsg.cards.length > 0) {
+    formsSelector = null
+  }
+  if (formsSelector) {
+    if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_PAUSE]) {
+      await browser.pause(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_PAUSE])
+    }
+    let formElements
+    if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_NESTED, true)) {
+      formElements = await element.$$(formsSelector)
+    } else {
+      formElements = await container.findElements(formsSelector)
+    }
+    for (const formElement of (formElements || [])) {
+      const form = await _getFormFromElement(container, browser, formElement)
+      if (form) {
+        botMsg.forms = botMsg.forms || []
+        botMsg.forms.push(form)
+      }
+    }
+  }
+
+  if (botMsg.messageText || (botMsg.buttons && botMsg.buttons.length > 0) || (botMsg.media && botMsg.media.length > 0) || (botMsg.cards && botMsg.cards.length > 0) || (botMsg.forms && botMsg.forms.length > 0) || !container.caps[Capabilities.WEBDRIVERIO_IGNOREEMPTYMESSAGES]) return container.BotSays(botMsg)
   else debug(`getBotMessageDefault ignoring empty element ${element.ELEMENT || element.elementId}`)
 }
 
@@ -464,6 +564,8 @@ class BotiumConnectorWebdriverIO {
     this.handledElement = []
     this.buttonElementsByText = {}
     this.buttonElementsByPayload = {}
+    this.formElementsByName = {}
+    this.formElementsById = {}
     this.screenshotCounterBySection = {}
     this.sourceCounterBySection = {}
     this.appiumContext = null
@@ -687,6 +789,8 @@ class BotiumConnectorWebdriverIO {
     this.handledElements = []
     this.buttonElementsByText = {}
     this.buttonElementsByPayload = {}
+    this.formElementsByName = {}
+    this.formElementsById = {}
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
       this.ignoreWelcomeMessageCounter = this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]
@@ -862,7 +966,7 @@ class BotiumConnectorWebdriverIO {
   }
 
   async BotSays (msg) {
-    debug(`BotSays called ${util.inspect(msg)}`)
+    debug(`BotSays called ${JSON.stringify(msg, null, 2)}`)
 
     if (this.ignoreBotMessages) {
       debug('BotSays ignoring upfront message')
