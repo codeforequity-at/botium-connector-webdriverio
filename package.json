@@ -1,6 +1,6 @@
 {
   "name": "botium-connector-webdriverio",
-  "version": "0.3.21",
+  "version": "0.3.22",
   "description": "Botium Connector for WebdriverIO scripts",
   "main": "dist/botium-connector-webdriverio-cjs.js",
   "module": "dist/botium-connector-webdriverio-es.js",
