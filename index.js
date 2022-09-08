@@ -81,6 +81,7 @@ const Capabilities = {
   WEBDRIVERIO_OUTPUT_ELEMENT_FORMS: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS',
   WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_NESTED: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_NESTED',
   WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_PAUSE',
+  WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT: 'WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_KEY_ATTRIBUTE',
   WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE: 'WEBDRIVERIO_OUTPUT_ELEMENT_CARD_PAUSE',
@@ -192,8 +193,13 @@ const sendToBotDefault = async (container, browser, msg) => {
       const formTagName = await formElement.getTagName()
 
       if (formTagName && formTagName === 'select') {
-        debug(`Setting select element option for ${form.name}: ${form.value}`)
-        await formElement.selectByAttribute('value', form.value)
+        if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT]) {
+          debug(`Setting select element option for ${form.name}: text "${form.value}"`)
+          await formElement.selectByVisibleText(form.value)
+        } else {
+          debug(`Setting select element option for ${form.name}: value "${form.value}"`)
+          await formElement.selectByAttribute('value', form.value)
+        }
       } else {
         debug(`Setting input element value for ${form.name}: ${form.value}`)
         await formElement.setValue(convertToSetValue(form.value), { translateToUnicode: false })
@@ -383,8 +389,12 @@ const _getFormFromElement = async (container, browser, formElement) => {
       const optionElements = await formElement.$$('option')
       for (const optionElement of (optionElements || [])) {
         const optionName = cleanText(await optionElement.getText())
-        const optionValue = cleanText(await optionElement.getAttribute('value'))
-        result.options.push({ title: optionName, value: optionValue })
+        if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT]) {
+          result.options.push({ title: optionName, value: optionName })
+        } else {
+          const optionValue = cleanText(await optionElement.getAttribute('value'))
+          result.options.push({ title: optionName, value: optionValue })
+        }
       }
       return result
     } else {
