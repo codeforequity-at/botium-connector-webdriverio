@@ -534,7 +534,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
     }
   }
 
-  let formsSelector = './/select | .//input'
+  let formsSelector = './/select | .//input | .//textarea'
   if (_.isBoolean(container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]) && !container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]) {
     formsSelector = null
   } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS]) {
