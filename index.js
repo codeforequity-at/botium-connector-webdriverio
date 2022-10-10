@@ -193,7 +193,11 @@ const sendToBotDefault = async (container, browser, msg) => {
       const formTagName = await formElement.getTagName()
 
       if (formTagName && formTagName === 'select') {
-        if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT]) {
+        if (`${form.value}`.startsWith('INDEX:')) {
+          const index = `${form.value}`.substr('INDEX:'.length)
+          debug(`Setting select element option for ${form.name}: index "${index}"`)
+          await formElement.selectByIndex(index)
+        } else if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT]) {
           debug(`Setting select element option for ${form.name}: text "${form.value}"`)
           await formElement.selectByVisibleText(form.value)
         } else {
@@ -201,8 +205,31 @@ const sendToBotDefault = async (container, browser, msg) => {
           await formElement.selectByAttribute('value', form.value)
         }
       } else {
-        debug(`Setting input element value for ${form.name}: ${form.value}`)
-        await formElement.setValue(convertToSetValue(form.value), { translateToUnicode: false })
+        const formType = await formElement.getAttribute('type')
+        if (formType === 'checkbox') {
+          const isSelected = await formElement.isSelected()
+          const shouldBeSelected = form.value === 'true' || form.value === 'checked'
+          if (isSelected !== shouldBeSelected) {
+            debug(`Clicking on checkbox ${form.name} to change state to: ${form.value}`)
+            await formElement.click()
+          } else {
+            debug(`Not clicking on checkbox ${form.name}, state already: ${form.value}`)
+          }
+        } else if (formType === 'radio') {
+          if (container.formElementsByValue[form.name] && container.formElementsByValue[form.name][form.value]) {
+            debug(`Clicking on radio button ${form.name} to change state to: ${form.value}`)
+            const radioElementByValue = container.formElementsByValue[form.name][form.value]
+            radioElementByValue.click()
+          } else if (form.value === 'true' || form.value === 'checked') {
+            debug(`Clicking on radio button ${form.name} to change state to: ${form.value}`)
+            await formElement.click()
+          } else {
+            debug(`Not clicking any radio button ${form.name} to change state to: ${form.value} - only setting to "true" possible`)
+          }
+        } else {
+          debug(`Setting input element value for ${form.name}: ${form.value}`)
+          await formElement.setValue(convertToSetValue(form.value), { translateToUnicode: false })
+        }
       }
     }
   }
@@ -370,11 +397,12 @@ const _getMediaFromElement = async (container, browser, mediaElement) => {
   }
 }
 
-const _getFormFromElement = async (container, browser, formElement) => {
+const _getFormFromElement = async (container, browser, formElement, forms = []) => {
   if (formElement) {
     const formTagName = await formElement.getTagName()
     const formId = await formElement.getAttribute('id')
     const formName = await formElement.getAttribute('name')
+    const formType = await formElement.getAttribute('type')
 
     if (formId) container.formElementsById[formId] = formElement
     if (formName) container.formElementsByName[formName] = formElement
@@ -387,21 +415,58 @@ const _getFormFromElement = async (container, browser, formElement) => {
         options: []
       }
       const optionElements = await formElement.$$('option')
-      for (const optionElement of (optionElements || [])) {
+      for (const [optionIndex, optionElement] of (optionElements || []).entries()) {
         const optionName = cleanText(await optionElement.getText())
+        const optionSelected = await optionElement.getAttribute('selected')
+
         if (container.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_FORMS_OPTIONTEXT]) {
           result.options.push({ title: optionName, value: optionName })
+          if (optionSelected) result.value = optionName
         } else {
-          const optionValue = cleanText(await optionElement.getAttribute('value'))
-          result.options.push({ title: optionName, value: optionValue })
+          result.options.push({ title: optionName, value: `INDEX:${optionIndex}` })
+          if (optionSelected) result.value = `INDEX:${optionIndex}`
         }
       }
       return result
-    } else {
+    } else if (formTagName && formTagName === 'input' && formType === 'checkbox') {
+      const checked = await formElement.getAttribute('checked')
+
       return {
         name: formId || formName,
         label: formName || formId,
-        type: 'Text'
+        type: 'Toggle',
+        value: checked ? 'true' : 'false'
+      }
+    } else if (formTagName && formTagName === 'input' && formType === 'radio') {
+      const formValue = await formElement.getAttribute('value')
+      const checked = await formElement.getAttribute('checked')
+
+      container.formElementsByValue[formName] = {
+        ...(container.formElementsByValue[formName] || {}),
+        [formValue]: formElement
+      }
+      const r = forms.find(f => f.type === 'RadioSet' && f.name === formName)
+      if (r) {
+        if (checked) {
+          r.value = formValue
+        }
+        r.options.push({ title: formId, value: formValue })
+      } else {
+        return {
+          name: formName,
+          label: formName,
+          type: 'RadioSet',
+          options: [{ title: formId, value: formValue }],
+          value: checked ? formValue : null
+        }
+      }
+    } else {
+      const formValue = await formElement.getAttribute('value')
+      return {
+        name: formId || formName,
+        label: formName || formId,
+        type: 'Text',
+        value: formValue
       }
     }
   }
@@ -553,7 +618,7 @@ const getBotMessageDefault = async (container, browser, element, html) => {
       formElements = await container.findElements(formsSelector)
     }
     for (const formElement of (formElements || [])) {
-      const form = await _getFormFromElement(container, browser, formElement)
+      const form = await _getFormFromElement(container, browser, formElement, botMsg.forms)
       if (form) {
         botMsg.forms = botMsg.forms || []
         botMsg.forms.push(form)
@@ -575,6 +640,7 @@ class BotiumConnectorWebdriverIO {
     this.buttonElementsByText = {}
     this.buttonElementsByPayload = {}
     this.formElementsByName = {}
+    this.formElementsByValue = {}
     this.formElementsById = {}
     this.screenshotCounterBySection = {}
     this.sourceCounterBySection = {}
@@ -800,6 +866,7 @@ class BotiumConnectorWebdriverIO {
     this.buttonElementsByText = {}
     this.buttonElementsByPayload = {}
     this.formElementsByName = {}
+    this.formElementsByValue = {}
     this.formElementsById = {}
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES]) {
