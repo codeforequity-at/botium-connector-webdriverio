@@ -388,11 +388,19 @@ const _getMediaFromElement = async (container, browser, mediaElement) => {
     const mediaSrcValue = await mediaElement.getAttribute('src')
     if (mediaSrcValue) {
       const mediaAltValue = cleanText(await mediaElement.getAttribute('alt'))
-      return {
+      const result = {
         mediaUri: mediaSrcValue,
-        mimeType: mime.lookup(mediaSrcValue) || 'application/unknown',
         altText: mediaAltValue
       }
+      if (_.isString(mediaSrcValue) && mediaSrcValue.startsWith('data:')) {
+        const parts = mediaSrcValue.split(':', 2)
+        if (parts.length > 1) {
+          result.mimeType = parts[1]
+        }
+      } else {
+        result.mimeType = mime.lookup(mediaSrcValue) || 'application/unknown'
+      }
+      return result
     }
   }
 }
