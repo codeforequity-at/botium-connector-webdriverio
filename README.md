@@ -408,6 +408,11 @@ _Default: 10000ms (10 sec)_
 
 Wait for the input element to become visible. If not visible within this amount of milliseconds, test fails.
 
+### WEBDRIVERIO_INPUT_ELEMENT_SKIP_WAITFORDISPLAYED
+_Default: false_
+
+By default, wait for input element to show up on start. Can be disabled.
+
 ### WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON
 Simulate button click for sending a text message (if not set: _Enter_ key is simulated)
 

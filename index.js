@@ -60,6 +60,7 @@ const Capabilities = {
   WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS: 'WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS',
   WEBDRIVERIO_INPUT_ELEMENT: 'WEBDRIVERIO_INPUT_ELEMENT',
   WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT: 'WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT',
+  WEBDRIVERIO_INPUT_ELEMENT_SKIP_WAITFORDISPLAYED: 'WEBDRIVERIO_INPUT_ELEMENT_SKIP_WAITFORDISPLAYED',
   WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_SENDBUTTON',
   WEBDRIVERIO_INPUT_ELEMENT_BUTTON: 'WEBDRIVERIO_INPUT_ELEMENT_BUTTON',
   WEBDRIVERIO_INPUTPAUSE: 'WEBDRIVERIO_INPUTPAUSE',
@@ -151,7 +152,7 @@ const openBotDefault = async (container, browser) => {
   }
 
   const inputElementSelector = container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT]
-  if (inputElementSelector) {
+  if (inputElementSelector && !container.caps[Capabilities.WEBDRIVERIO_INPUT_ELEMENT_SKIP_WAITFORDISPLAYED]) {
     const inputElement = await container.findElement(inputElementSelector)
     await inputElement.waitForDisplayed({ timeout: inputElementVisibleTimeout })
     debug(`Input element ${inputElementSelector} is visible`)

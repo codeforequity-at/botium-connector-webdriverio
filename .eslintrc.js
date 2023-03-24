@@ -1,3 +1,9 @@
 module.exports = {
-    "extends": "standard"
+  "extends": "standard",
+  "rules": {
+    "jsdoc/no-undefined-types": 1
+  },
+  "plugins": [
+    "jest"
+  ]
 };
