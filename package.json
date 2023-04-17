@@ -11,8 +11,8 @@
     "selenium": "selenium-standalone start",
     "selenium-install": "selenium-standalone install",
     "update-dependencies": "npm-check-updates --reject chromedriver,debug -u --timeout 120000",
-    "test": "jest --projects test/unittest",
-    "test-nightly": "jest --projects test/nightly"
+    "test": "npm install --no-save botium-core && jest --projects test/unittest",
+    "test-nightly": "npm install --no-save botium-core && jest --projects test/nightly"
   },
   "repository": {
     "type": "git",
