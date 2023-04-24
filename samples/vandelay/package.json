@@ -1,0 +1,21 @@
+{
+  "name": "vandelay",
+  "version": "1.0.0",
+  "scripts": {
+    "postinstall": "cd ../../ && npm install --no-save botium-core chromedriver@111 --no-save",
+    "test": "mocha spec"
+  },
+  "devDependencies": {
+    "botium-bindings": "latest",
+    "botium-connector-webdriverio": "../../",
+    "botium-logichook-perfectoreporting": "latest",
+    "mocha": "latest"
+  },
+  "botium": {
+    "convodirs": [
+      "spec/convo"
+    ],
+    "expandConvos": true,
+    "expandUtterancesToConvos": false
+  }
+}

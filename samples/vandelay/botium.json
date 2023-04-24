@@ -1,0 +1,29 @@
+{
+  "botium": {
+    "Capabilities": {
+      "PROJECTNAME": "Vandelay Chatbot",
+      "CONTAINERMODE": "webdriverio",
+      "__CLEANUPTEMPDIR": false,
+      "WEBDRIVERIO_SCREENSHOTS": "always",
+      "__WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true,
+      "__WEBDRIVERIO_START_CHROMEDRIVER_OPTIONS": ["--no-sandbox", "--disable-gpu"],
+      "WEBDRIVERIO_VIEWPORT_SIZE": { "width": 1900, "height": 1280 },
+      "WEBDRIVERIO_URL": "https://demosbycyara.com/lms-vandelay-airlines",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH": "HASH",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE": "id",
+      "WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS": [
+        "#b1d29bf3-d525-487a-85cb-82af0185cb0c-accept",
+        "iframe://iframe"
+      ],
+      "WEBDRIVERIO_OPENBOTPAUSE": 1000,
+      "WEBDRIVERIO_INPUT_ELEMENT": "#WAC__inputContainer-TextArea",
+      "WEBDRIVERIO_INPUT_ELEMENT_VISIBLE_TIMEOUT": 10000,
+      "WEBDRIVERIO_OUTPUT_ELEMENT": "//div[contains(@class,'WAC__message ') and descendant::div[contains(@class,'WAC__bot-message')] and descendant::div[contains(@class,'WAC__received--inner')]]",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS": "",
+      "WEBDRIVERIO_OUTPUT_ELEMENT_BUTTONS_NESTED": true,
+      "WEBDRIVERIO_OUTPUT_ELEMENT_TEXT": ".WAC__received--inner",
+      "WEBDRIVERIO_START_CHROMEDRIVER": true,
+      "WEBDRIVERIO_SELENIUM_DEBUG": false
+    }
+  }
+}

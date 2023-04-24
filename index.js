@@ -340,7 +340,14 @@ const _getTextFromElement = async (container, browser, element) => {
     if (_isNested(container, Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_TEXT_NESTED, true)) {
       for (const sel of trySelectors) {
         try {
-          return cleanText(await element.$(sel).getText())
+          const textElements = (await element.$$(sel)).filter(t => t.elementId)
+          if (textElements && textElements.length > 0) {
+            const result = []
+            for (const textElement of textElements) {
+              result.push(cleanText(await textElement.getText()))
+            }
+            return result.join(' ')
+          }
         } catch (err) {
           debug('_getTextFromElement textElement.getText failed', err.message)
         }
@@ -348,7 +355,14 @@ const _getTextFromElement = async (container, browser, element) => {
     } else {
       for (const sel of trySelectors) {
         try {
-          return cleanText(await container.findElement(sel).getText())
+          const textElements = (await container.findElements(sel)).filter(t => t.elementId)
+          if (textElements && textElements.length > 0) {
+            const result = []
+            for (const textElement of textElements) {
+              result.push(cleanText(await textElement.getText()))
+            }
+            return result.join(' ')
+          }
         } catch (err) {
           debug('_getTextFromElement textElement.getText failed', err.message)
         }
@@ -1331,7 +1345,8 @@ class BotiumConnectorWebdriverIO {
 
   async _takeScreenshot (section) {
     if (this.browser) {
-      const screenshotFileName = `screenshot_${section}_${this._screenshotSectionCounter(section)}_.png`
+      const counter = this._screenshotSectionCounter('main')
+      const screenshotFileName = `screenshot${counter}_${section}_${this._screenshotSectionCounter(section)}_.png`
       try {
         const filename = path.resolve(this.container.tempDirectory, screenshotFileName)
         const buffer = await this.browser.saveScreenshot(filename)
@@ -1352,7 +1367,8 @@ class BotiumConnectorWebdriverIO {
   async _saveDebugScreenshot (section) {
     if (this.browser) {
       try {
-        const filename = path.resolve(this.container.tempDirectory, `${section}_${this._screenshotSectionCounter(section)}_.png`)
+        const counter = this._screenshotSectionCounter('debug')
+        const filename = path.resolve(this.container.tempDirectory, `${counter}_${section}_${this._screenshotSectionCounter(section)}_.png`)
         await this.browser.saveScreenshot(filename)
         debug(`Saved debugging screenshot to ${filename}`)
       } catch (err) {
@@ -1393,7 +1409,8 @@ class BotiumConnectorWebdriverIO {
       }
     }
     if (html) {
-      const dumpFileName = `pagesource_${section}_${this._sourceSectionCounter(section)}.txt`
+      const counter = this._screenshotSectionCounter('dump')
+      const dumpFileName = `pagesource${counter}_${section}_${this._sourceSectionCounter(section)}.txt`
       try {
         const filename = path.resolve(this.container.tempDirectory, dumpFileName)
         fs.writeFileSync(filename, html)

@@ -1,0 +1,28 @@
+hello
+
+#bot
+Welcome Aboard Vandelay Airlines. Your captain Art Vandelay at your service today. How can we help.
+
+#bot
+Select from below or type your question.
+
+#me
+BUTTON Flight Status
+
+#bot
+I can help you with checking a flight status.
+
+#bot
+Do you want today's flights or would you like to enter a Flight Number?
+
+#me
+BUTTON Flight Number
+
+#bot
+Enter the flight number. It start with VA and has 4 digits.
+
+#me
+VA1234
+
+#bot
+We have located flights matching Flight Number VA1234.
