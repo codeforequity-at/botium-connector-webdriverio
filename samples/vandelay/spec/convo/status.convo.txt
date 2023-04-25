@@ -1,6 +1,9 @@
 hello
 
 #bot
+MEDIA
+
+#bot
 Welcome Aboard Vandelay Airlines. Your captain Art Vandelay at your service today. How can we help.
 
 #bot
@@ -8,6 +11,9 @@ Select from below or type your question.
 
 #me
 BUTTON Flight Status
+
+#bot
+MEDIA
 
 #bot
 I can help you with checking a flight status.

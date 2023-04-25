@@ -489,10 +489,10 @@ The algorithm used to calculate a unique identifier for an identified output ele
 
 Possible values:
 
-* ELEMENTID - use the Webdriver element identifier
-* HASH - use the HTML output as identifier
-* INDEX - use the position in the output DOM as identifier
-* TEXT - use the displayed text as identifier
+* HASH - use parts of the HTML output (or an HTML attribute) as identifier (most stable)
+* INDEX - use the position in the output DOM as identifier (only if DOM is stable)
+* TEXT - use the displayed text as identifier (fallback if none of the above possible)
+* ELEMENTID - use the Webdriver element identifier (nearly unuseable)
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR
 _Default: empty_
@@ -509,6 +509,18 @@ For instance, HTML for a bot message could look like this:
 * **WEBDRIVERIO_OUTPUT_ELEMENT** - //div[contains(@class,'bot-message')]
 * **WEBDRIVERIO_OUTPUT_ELEMENT_HASH** - HASH
 * **WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR** - ./div[contains(@class,'text')]
+
+Or it can also select something up the DOM tree:
+
+```
+<div class="chat-bubble" id="1683949299888"><div class="bot-message"><div class="text">Hey, meat bag!</div></div></div>
+
+```
+
+* **WEBDRIVERIO_OUTPUT_ELEMENT** - //div[contains(@class,'bot-message')]
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH** - HASH
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR** - ../div[contains(@class,'chat-bubble')]
+* **WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE** - id
 
 ### WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE
 _Default: empty_

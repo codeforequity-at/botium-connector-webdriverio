@@ -5,6 +5,7 @@ const mime = require('mime-types')
 const webdriverio = require('webdriverio')
 const { UNICODE_CHARACTERS } = require('@wdio/utils')
 const esprima = require('esprima')
+const pretty = require('pretty')
 const Mustache = require('mustache')
 const crypto = require('crypto')
 const Queue = require('better-queue')
@@ -134,13 +135,13 @@ const openBrowserDefault = async (container, browser) => {
     await browser.execute('window.localStorage.clear();')
     debug(`URL ${url} opened, deleted local storage`)
   } catch (err) {
-    debug(`openBrowser failed to delete local storage: ${err.message}`)
+    debug(`openBrowser failed to delete local storage: ${err.message || err}`)
   }
   try {
     await browser.execute('window.sessionStorage.clear();')
     debug(`URL ${url} opened, deleted session storage`)
   } catch (err) {
-    debug(`openBrowser failed to delete session storage: ${err.message}`)
+    debug(`openBrowser failed to delete session storage: ${err.message || err}`)
   }
 }
 
@@ -783,7 +784,7 @@ class BotiumConnectorWebdriverIO {
           await this.waitAndClickOn(clickSelector, options)
           debug(`clickSeries - clicked on element #${i + 1}: ${clickSelector}`)
         } catch (err) {
-          debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message}`)
+          debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message || err}`)
         }
       }
       if (clickSelector.toLowerCase() !== 'dumphtml' && !clickSelector.toLowerCase().startsWith('pause:')) {
@@ -842,7 +843,7 @@ class BotiumConnectorWebdriverIO {
       try {
         JSON.parse(this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM_OPTS])
       } catch (err) {
-        throw new Error(`WEBDRIVERIO_START_SELENIUM_OPTS JSON.parse failed: ${err}`)
+        throw new Error(`WEBDRIVERIO_START_SELENIUM_OPTS JSON.parse failed: ${err.message || err}`)
       }
     }
   }
@@ -872,7 +873,7 @@ class BotiumConnectorWebdriverIO {
       return new Promise((resolve, reject) => {
         selenium.start(seleniumOpts, (err, child) => {
           if (err) {
-            reject(new Error(`Failed to start selenium: ${err}`))
+            reject(new Error(`Failed to start selenium: ${err.message || err}`))
           } else {
             this.seleniumChild = child
             resolve()
@@ -1188,20 +1189,27 @@ class BotiumConnectorWebdriverIO {
           if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'INDEX') {
             hashKey = `${index}`
           } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'HASH') {
-            if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
-              hashKey = await element.getAttribute(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE])
-            } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR]) {
-              const hashElement = await element.$(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])
-              const hashHtml = await hashElement.getHTML()
-              hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
+            if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR] || this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
+              const hashElement = this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR] ? (await element.$(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_SELECTOR])) : element
+              if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE]) {
+                hashKey = await hashElement.getAttribute(this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH_ATTRIBUTE])
+                if (!hashKey) continue
+              } else {
+                const hashHtml = await hashElement.getHTML()
+                hashKey = crypto.createHash('md5').update(hashHtml).digest('hex')
+              }
             } else if (html) {
               hashKey = crypto.createHash('md5').update(html).digest('hex')
             } else {
               continue
             }
           } else if (this.caps[Capabilities.WEBDRIVERIO_OUTPUT_ELEMENT_HASH] === 'TEXT') {
-            hashKey = await _getTextFromElement(this, this.browser, element)
-            hashKey = crypto.createHash('md5').update(hashKey).digest('hex')
+            const hashText = await _getTextFromElement(this, this.browser, element)
+            if (hashText) {
+              hashKey = crypto.createHash('md5').update(hashText).digest('hex')
+            } else {
+              continue
+            }
           } else {
             hashKey = `${element.ELEMENT || element.elementId}`
           }
@@ -1216,11 +1224,11 @@ class BotiumConnectorWebdriverIO {
             await this.getBotMessage(this, this.browser, element, html)
           }
         } catch (err) {
-          debug(`Failed in getBotMessage, skipping: ${err}`)
+          debug(`Failed in getBotMessage, skipping: ${err.message || err}`)
         }
       }
     } catch (err) {
-      debug(`Failed in receiving from bot: ${err}`)
+      debug(`Failed in receiving from bot: ${err.message || err}`)
     }
     setTimeout(() => {
       if (this.queue) {
@@ -1409,13 +1417,18 @@ class BotiumConnectorWebdriverIO {
       }
     }
     if (html) {
+      try {
+        html = pretty(html)
+      } catch (err) {
+        debug(`Failed to prettify HTML page source: ${err.message || err}`)
+      }
       const counter = this._screenshotSectionCounter('dump')
       const dumpFileName = `pagesource${counter}_${section}_${this._sourceSectionCounter(section)}.txt`
       try {
         const filename = path.resolve(this.container.tempDirectory, dumpFileName)
         fs.writeFileSync(filename, html)
       } catch (err) {
-        debug(`Failed to write HTML page source: ${err}`)
+        debug(`Failed to write HTML page source: ${err.message || err}`)
       }
       return {
         name: dumpFileName,
@@ -1423,7 +1436,7 @@ class BotiumConnectorWebdriverIO {
         mimeType: 'text/plain'
       }
     } else if (htmlErr.length > 0) {
-      htmlErr.forEach(err => debug(`Failed to retrieve HTML page source: ${err}`))
+      htmlErr.forEach(err => debug(`Failed to retrieve HTML page source: ${err.message || err}`))
     }
   }
 

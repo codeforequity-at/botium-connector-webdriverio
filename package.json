@@ -53,6 +53,7 @@
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
     "mustache": "^4.2.0",
+    "pretty": "^2.0.0",
     "selenium-standalone": "^8.3.0",
     "vm2": "^3.9.17",
     "webdriverio": "7.31.1",

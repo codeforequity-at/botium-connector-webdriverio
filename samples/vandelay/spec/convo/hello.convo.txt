@@ -1,6 +1,9 @@
 hello
 
 #bot
+MEDIA
+
+#bot
 Welcome Aboard Vandelay Airlines. Your captain Art Vandelay at your service today. How can we help.
 
 #bot
