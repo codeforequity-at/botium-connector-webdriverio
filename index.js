@@ -1422,6 +1422,7 @@ class BotiumConnectorWebdriverIO {
       } catch (err) {
         debug(`Failed to prettify HTML page source: ${err.message || err}`)
       }
+      debug(html)
       const counter = this._screenshotSectionCounter('dump')
       const dumpFileName = `pagesource${counter}_${section}_${this._sourceSectionCounter(section)}.txt`
       try {
