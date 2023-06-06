@@ -1,4 +1,4 @@
-const { webdriverioMock, elementMock } = require('./mockWebdriver')
+const { elementMock } = require('./mockWebdriver')
 const { initConnector } = require('./helper')
 
 describe('Webdriver Input Element', () => {

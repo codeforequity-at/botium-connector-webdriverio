@@ -1,8 +1,8 @@
 {
   "botium": {
     "Capabilities": {
-      "PROJECTNAME": "Vandelay Chatbot",
-      "CONTAINERMODE": "webdriverio",
+      "PROJECTNAME": "Nightly Tests",
+      "CONTAINERMODE": "./index.js",
       "__CLEANUPTEMPDIR": false,
       "WEBDRIVERIO_SCREENSHOTS": "always",
       "__WEBDRIVERIO_OUTPUT_ELEMENT_DEBUG_HTML": true,

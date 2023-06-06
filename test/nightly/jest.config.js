@@ -4,5 +4,6 @@ module.exports = {
   collectCoverageFrom: [
     '../../index.js'
   ],
-  coverageReporters: ['text']
+  coverageReporters: ['text'],
+  testTimeout: 120000
 }

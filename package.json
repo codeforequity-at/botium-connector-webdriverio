@@ -6,13 +6,13 @@
   "module": "dist/botium-connector-webdriverio-es.js",
   "scripts": {
     "build": "npm run eslint && rollup -c",
-    "eslint": "eslint index.js profiles/*.js",
-    "eslint-fix": "eslint --fix index.js profiles/*.js",
+    "eslint": "eslint index.js profiles/*.js test/*/**.js",
+    "eslint-fix": "eslint --fix index.js profiles/*.js test/*/**.js",
     "selenium": "selenium-standalone start",
     "selenium-install": "selenium-standalone install",
     "update-dependencies": "npm-check-updates --reject chromedriver,debug,rollup,webdriverio -u --timeout 120000",
     "test": "npm install --no-save botium-core && jest --projects test/unittest",
-    "test-nightly": "npm install --no-save botium-core && jest --projects test/nightly"
+    "test-nightly": "npm install --no-save botium-bindings && DEBUG=botium-con* BOTIUM_CONFIG=./test/nightly/botium.json jest --projects test/nightly"
   },
   "repository": {
     "type": "git",
@@ -25,19 +25,19 @@
   },
   "homepage": "https://www.botium.ai",
   "devDependencies": {
-    "@babel/core": "^7.21.4",
-    "@babel/node": "^7.20.7",
-    "@babel/plugin-transform-runtime": "^7.21.4",
-    "@babel/preset-env": "^7.21.4",
-    "eslint": "^8.39.0",
-    "eslint-config-standard": "^17.0.0",
+    "@babel/core": "^7.22.1",
+    "@babel/node": "^7.22.1",
+    "@babel/plugin-transform-runtime": "^7.22.4",
+    "@babel/preset-env": "^7.22.4",
+    "eslint": "^8.42.0",
+    "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jest": "^27.2.1",
-    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-n": "^16.0.0",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-standard": "^5.0.0",
     "jest": "^29.5.0",
-    "npm-check-updates": "^16.10.9",
+    "npm-check-updates": "^16.10.12",
     "rollup": "^2.79.1",
     "rollup-plugin-babel": "^4.4.0",
     "rollup-plugin-commonjs": "^10.1.0",
@@ -45,7 +45,7 @@
     "rollup-plugin-node-resolve": "^5.2.0"
   },
   "dependencies": {
-    "@babel/runtime": "^7.21.0",
+    "@babel/runtime": "^7.22.3",
     "better-queue": "^3.8.12",
     "chromedriver": "86.0.0",
     "debug": "4.0.0",
@@ -55,7 +55,7 @@
     "mustache": "^4.2.0",
     "pretty": "^2.0.0",
     "selenium-standalone": "^8.3.0",
-    "vm2": "^3.9.17",
+    "vm2": "^3.9.19",
     "webdriverio": "7.31.1",
     "xmldom": "^0.6.0",
     "xpath": "0.0.32"
