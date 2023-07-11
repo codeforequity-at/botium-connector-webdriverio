@@ -47,7 +47,7 @@
   "dependencies": {
     "@babel/runtime": "^7.22.3",
     "better-queue": "^3.8.12",
-    "chromedriver": "86.0.0",
+    "chromedriver": "114.0.0",
     "debug": "4.0.0",
     "esprima": "^4.0.1",
     "lodash": "^4.17.21",
