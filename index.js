@@ -4,7 +4,6 @@ const fs = require('fs')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
 const { UNICODE_CHARACTERS } = require('@wdio/utils')
-const esprima = require('esprima')
 const pretty = require('pretty')
 const Mustache = require('mustache')
 const crypto = require('crypto')
@@ -12,7 +11,6 @@ const Queue = require('better-queue')
 const chromedriver = require('chromedriver')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
-const { NodeVM } = require('vm2')
 const xpath = require('xpath')
 const { DOMParser } = require('xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
@@ -716,79 +714,151 @@ class BotiumConnectorWebdriverIO {
     if (_.isString(clickSelectors)) {
       clickSelectors = [clickSelectors]
     }
-    for (const [i, clickSelector] of clickSelectors.entries()) {
-      if (clickSelector.toLowerCase().startsWith('pause:')) {
-        debug(`clickSeries - pausing #${i + 1}: ${clickSelector}`)
+    options = options || {}
 
-        const pause = clickSelector.substring(6)
-        await this.browser.pause(pause)
-      } else if (clickSelector.toLowerCase() === 'dumphtml') {
-        debug(`clickSeries - dumping html #${i + 1}`)
-        await this._dumpPageSource('clickSeries', true)
-      } else if (clickSelector.toLowerCase().startsWith('iframe:')) {
-        debug(`clickSeries - trying to switch to iframe #${i + 1}: ${clickSelector}`)
-
-        const iframeSelector = clickSelector.substring(7)
-        if (iframeSelector === 'parent') {
-          await this.browser.switchToParentFrame()
-        } else {
-          const iframeElement = await this.findElement(iframeSelector)
-          await iframeElement.waitForDisplayed(options)
-          try {
-            await this.browser.switchToFrame(iframeElement)
-          } catch (err) {
-            await this.browser.switchToFrame(iframeElement.elementId)
-          }
-        }
-      } else if (clickSelector.toLowerCase().startsWith('setvalue:') || clickSelector.toLowerCase().startsWith('addvalue:')) {
-        const parts = clickSelector.split(':', 3)
-        const action = parts[0]
-        const value = parts[1]
-        const inputElementSelector = parts[2]
-
-        if (action === 'setvalue') {
-          debug(`clickSeries - trying to set value ${value} #${i + 1}: ${inputElementSelector}`)
-          const inputElement = await this.findElement(inputElementSelector)
-          if (value === 'Enter') {
-            await inputElement.setValue(convertToSetValue(null, true), { translateToUnicode: false })
-          } else {
-            await inputElement.setValue(convertToSetValue(value), { translateToUnicode: false })
-          }
-        } else if (action === 'addvalue') {
-          debug(`clickSeries - trying to add value ${value} #${i + 1}: ${inputElementSelector}`)
-          const inputElement = await this.findElement(inputElementSelector)
-          if (value === 'Enter') {
-            await inputElement.addValue(convertToSetValue(null, true), { translateToUnicode: false })
-          } else {
-            await inputElement.addValue(convertToSetValue(value), { translateToUnicode: false })
-          }
-        }
-      } else if (clickSelector.toLowerCase().startsWith('context:')) {
-        let context = clickSelector.substring(8)
-        debug(`clickSeries - waiting for context #${i + 1} matching: ${context}`)
-        await this.browser.waitUntil(async () => {
-          const contexts = await this.browser.getContexts()
-          const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
-          if (matchingContext) {
-            context = matchingContext
-            return true
-          }
-          return false
-        }, { timeout: options.timeout, timeoutMsg: `Context ${context} not available` })
-        debug(`clickSeries - trying to switch context #${i + 1}: ${context}`)
-        await this.browser.switchContext(context)
-        this.appiumContext = context
-      } else {
-        debug(`clickSeries - trying to click on element #${i + 1}: ${clickSelector}`)
-        try {
-          await this.waitAndClickOn(clickSelector, options)
-          debug(`clickSeries - clicked on element #${i + 1}: ${clickSelector}`)
-        } catch (err) {
-          debug(`clickSeries - failed to click on element #${i + 1}: ${clickSelector} - skipping it. ${err.message || err}`)
-        }
+    for (let [i, clickSelector] of clickSelectors.entries()) {
+      let isOptional = false
+      if (clickSelector.startsWith('?')) {
+        isOptional = true
+        clickSelector = clickSelector.substring(1)
+      } else if (clickSelector.startsWith('!')) {
+        isOptional = false
+        clickSelector = clickSelector.substring(1)
       }
-      if (clickSelector.toLowerCase() !== 'dumphtml' && !clickSelector.toLowerCase().startsWith('pause:')) {
-        await this._dumpPageSource('clickSeries')
+
+      try {
+        if (clickSelector.toLowerCase().startsWith('pause:')) {
+          debug(`clickSeries - pausing #${i + 1}: ${clickSelector}`)
+
+          const pause = clickSelector.split(':', 2)[1]
+          await this.browser.pause(pause)
+        } else if (clickSelector.toLowerCase() === 'dumphtml') {
+          debug(`clickSeries - dumping html #${i + 1}`)
+          await this._dumpPageSource('clickSeries', true)
+        } else if (clickSelector.toLowerCase().startsWith('iframe:')) {
+          debug(`clickSeries - trying to switch to iframe #${i + 1}: ${clickSelector}`)
+
+          const iframeSelector = clickSelector.split(':', 2)[1]
+          if (iframeSelector === 'parent') {
+            await this.browser.switchToParentFrame()
+          } else {
+            const iframeElement = await this.findElement(iframeSelector)
+            await iframeElement.waitForDisplayed(options)
+            try {
+              await this.browser.switchToFrame(iframeElement)
+            } catch (err) {
+              await this.browser.switchToFrame(iframeElement.elementId)
+            }
+          }
+          debug(`clickSeries - switched to iframe #${i + 1}: ${clickSelector}`)
+        } else if (clickSelector.toLowerCase().startsWith('switch:')) {
+          debug(`clickSeries - trying to switch to window/tab #${i + 1}: ${clickSelector}`)
+
+          const switchSelector = clickSelector.split(':', 2)[1]
+          await this.browser.switchWindow(switchSelector)
+          debug(`clickSeries - switched to window/tab #${i + 1}: ${clickSelector}`)
+        } else if (clickSelector.toLowerCase().startsWith('setvalue:') || clickSelector.toLowerCase().startsWith('sendkeys:') || clickSelector.toLowerCase().startsWith('addvalue:')) {
+          const parts = clickSelector.split(':', 3)
+          const action = parts[0]
+          const value = parts[1]
+          const inputElementSelector = parts[2]
+
+          if (action === 'setvalue') {
+            debug(`clickSeries - trying to set value ${value} #${i + 1}: ${inputElementSelector}`)
+            const inputElement = await this.findElement(inputElementSelector)
+            if (value === 'Enter') {
+              await inputElement.setValue(convertToSetValue(null, true), { translateToUnicode: false })
+            } else {
+              await inputElement.setValue(convertToSetValue(value), { translateToUnicode: false })
+            }
+          } else if (action === 'sendkeys') {
+            debug(`clickSeries - trying to send keys ${value} #${i + 1}: ${inputElementSelector}`)
+            const inputElement = await this.findElement(inputElementSelector)
+            if (value === 'Enter') {
+              await inputElement.sendKeys(convertToSetValue(null, true), { translateToUnicode: false })
+            } else {
+              await inputElement.sendKeys(convertToSetValue(value), { translateToUnicode: false })
+            }
+          } else if (action === 'addvalue') {
+            debug(`clickSeries - trying to add value ${value} #${i + 1}: ${inputElementSelector}`)
+            const inputElement = await this.findElement(inputElementSelector)
+            if (value === 'Enter') {
+              await inputElement.addValue(convertToSetValue(null, true), { translateToUnicode: false })
+            } else {
+              await inputElement.addValue(convertToSetValue(value), { translateToUnicode: false })
+            }
+          }
+        } else if (clickSelector.toLowerCase().startsWith('context:')) {
+          let context = clickSelector.split(':', 2)[1]
+          debug(`clickSeries - waiting for context #${i + 1} matching: ${context}`)
+          await this.browser.waitUntil(async () => {
+            const contexts = await this.browser.getContexts()
+            const matchingContext = contexts.find(c => c.toLowerCase().includes(context.toLowerCase()))
+            if (matchingContext) {
+              context = matchingContext
+              return true
+            }
+            return false
+          }, { timeout: options.timeout, timeoutMsg: `Context ${context} not available` })
+          debug(`clickSeries - trying to switch context #${i + 1}: ${context}`)
+          await this.browser.switchContext(context)
+          this.appiumContext = context
+          debug(`clickSeries - switched context #${i + 1}: ${context}`)
+        } else if (clickSelector.toLowerCase().startsWith('waitForDisplayed:')) {
+          debug(`clickSeries - waiting for an element to be visible #${i + 1}: ${clickSelector}`)
+
+          const parts = clickSelector.split(':', 3)
+          const inputElementSelector = parts[1]
+          if (parts[2]) options.timeout = parts[2]
+
+          const inputElement = await this.findElement(inputElementSelector)
+          await inputElement.waitForDisplayed(options)
+          debug(`clickSeries - element ${inputElementSelector} is visible`)
+        } else if (clickSelector.toLowerCase().startsWith('waitForClickable:')) {
+          debug(`clickSeries - waiting for an element to be clickable #${i + 1}: ${clickSelector}`)
+
+          const parts = clickSelector.split(':', 3)
+          const inputElementSelector = parts[1]
+          if (parts[2]) options.timeout = parts[2]
+
+          const inputElement = await this.findElement(inputElementSelector)
+          await inputElement.waitForClickable(options)
+          debug(`clickSeries - element ${inputElementSelector} is clickable`)
+        } else if (clickSelector.toLowerCase().startsWith('waitForEnabled:')) {
+          debug(`clickSeries - waiting for an element to be enabled #${i + 1}: ${clickSelector}`)
+
+          const parts = clickSelector.split(':', 3)
+          const inputElementSelector = parts[1]
+          if (parts[2]) options.timeout = parts[2]
+
+          const inputElement = await this.findElement(inputElementSelector)
+          await inputElement.waitForEnabled(options)
+          debug(`clickSeries - element ${inputElementSelector} is enabled`)
+        } else {
+          debug(`clickSeries - trying to click on element #${i + 1}: ${clickSelector}`)
+
+          const parts = clickSelector.split(':', 3)
+          const inputElementSelector = clickSelector.startsWith('click:') ? parts[1] : clickSelector
+          if (parts[2]) options.timeout = parts[2]
+
+          try {
+            await this.waitAndClickOn(inputElementSelector, options)
+            debug(`clickSeries - clicked on element #${i + 1}: ${inputElementSelector}`)
+          } catch (err) {
+            debug(`clickSeries - failed to click on element #${i + 1}: ${inputElementSelector}: ${err.message || err}`)
+            throw err
+          }
+        }
+        if (clickSelector.toLowerCase() !== 'dumphtml' && !clickSelector.toLowerCase().startsWith('pause:')) {
+          await this._dumpPageSource('clickSeries')
+        }
+      } catch (err) {
+        if (isOptional) {
+          debug(`clickSeries - optional clickSelector failed #${i + 1}: ${clickSelector} - skipping it: ${err.message || err}`)
+        } else {
+          debug(`clickSeries - clickSelector failed #${i + 1}: ${clickSelector}: ${err.message || err}`)
+          throw err
+        }
       }
     }
   }
@@ -1296,41 +1366,6 @@ class BotiumConnectorWebdriverIO {
         } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
       } catch (err) {
         loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
-      }
-    }
-
-    if (_.isString(this.caps[capName])) {
-      try {
-        esprima.parseScript(this.caps[capName])
-        debug(`Loaded Capability ${capName} function as javascript`)
-
-        return (container, browser) => {
-          debug(`Running ${capName} function from inline javascript ...`)
-          const sandbox = {
-            container: {
-              caps: { ...container.caps },
-              findElement: (...args) => this.findElement(...args),
-              findElements: (...args) => this.findElements(...args),
-              clickSeries: (...args) => this.clickSeries(...args),
-              waitAndClickOn: (...args) => this.waitAndClickOn(...args),
-              BotSays: (...args) => this.BotSays(...args)
-            },
-            browser
-          }
-          const vm = new NodeVM({
-            eval: false,
-            require: false,
-            sandbox
-          })
-          const r = vm.run(this.caps[capName])
-          if (_.isFunction(r)) {
-            return r(sandbox.container, sandbox.browser)
-          } else {
-            return r
-          }
-        }
-      } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function as javascript failed - no valid javascript ${err.message || util.inspect(err)}`)
       }
     }
 
