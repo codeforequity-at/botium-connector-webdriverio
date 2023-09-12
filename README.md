@@ -157,7 +157,6 @@ Customization is done by injection Node.js-Code into Botium. The code to execute
 * a pointer to a _Javascript Function_ (not possible when configuration is done in _botium.json_ file)
 * the name of an _NPM Package_, which exports a single function
 * a _Javascript file name_ relative to the current working directory, which exports a single function (see below)
-* _Javascript code_ to be compiled and executed (see below)
 
 **See _botium.json_ in the _samples/custom_ folder for examples**
 
@@ -172,21 +171,6 @@ module.exports = async (container, browser) => {
   await startChat.click()
 }
 ```
-
-### Placing code in a capability as String
-
-When placing the code in a string capability, make sure to return a Promise like this:
-
-    "WEBDRIVERIO_OPENBOT": "module.exports = container.findElement('.troy__start-icon')).then(startChat => startChat.waitForClickable({ timeout: 20000 }).then(() => startChat.click()))"
-
-Or use async/await like this:
-
-    "WEBDRIVERIO_OPENBOT": "module.exports = (async () => { const startChat = await container.findElement('#StartChat'); await startChat.waitForClickable({ timeout: 20000 }); await startChat.click();})()",
-
-The parameters handed over to the function (as global variables) are described below.
-
-The capabilities representing the extension points are:
-
 ### Parameters
 
 **container**
@@ -214,7 +198,7 @@ Pre-defined behaviour:
 * If there are buttons configured (see _WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS_), click them one after the other
 * Waiting until the input text field is visible
 
-This has to be customized in most cases - for example, to click away the typical "Cookie"-warning from a website, clicking on the chatbot button at the bottom right of the website, ... In cases when it is not sufficient to click buttons (see _WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS_), it is possible to specify Javascript code.
+This has to be customized in most cases - for example, to click away the typical "Cookie"-warning from a website, clicking on the chatbot button at the bottom right of the website, ... 
 
 The _samples/custom_ folder has an example for this scenario.
 
