@@ -15,7 +15,7 @@ const xpath = require('xpath')
 const { DOMParser } = require('xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
 
-const { BotiumError, Capabilities: CoreCapabilities } = require('botium-core')
+const { HookUtils } = require('botium-core')
 
 const dialogflowComProfile = require('./profiles/dialogflow_com')
 const dialogflowcxMessengerProfile = require('./profiles/dialogflowcx_messenger')
@@ -866,7 +866,6 @@ class BotiumConnectorWebdriverIO {
   async Validate () {
     debug('Validate called')
 
-    let profileCapabilityNames = []
     if (this.caps[Capabilities.WEBDRIVERIO_PROFILE]) {
       const profile = profiles[this.caps[Capabilities.WEBDRIVERIO_PROFILE]]
       if (!profile) throw new Error('WEBDRIVERIO_PROFILE capability invalid')
@@ -876,7 +875,6 @@ class BotiumConnectorWebdriverIO {
         await cleanedProfile.VALIDATE(this)
         delete cleanedProfile.VALIDATE
       }
-      profileCapabilityNames = Object.keys(cleanedProfile)
       this.caps = Object.assign(this.caps, cleanedProfile)
     }
 
@@ -893,11 +891,11 @@ class BotiumConnectorWebdriverIO {
     if (!_.has(this.caps, Capabilities.WEBDRIVERIO_OUTPUT_XPATH)) {
       this.caps[Capabilities.WEBDRIVERIO_OUTPUT_XPATH] = this.isAppium()
     }
-    this.openBrowser = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBROWSER, openBrowserDefault, profileCapabilityNames)
-    this.openBot = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBOT, openBotDefault, profileCapabilityNames)
-    this.sendToBot = this._loadFunction(Capabilities.WEBDRIVERIO_SENDTOBOT, sendToBotDefault, profileCapabilityNames)
-    this.receiveFromBot = this._loadFunction(Capabilities.WEBDRIVERIO_RECEIVEFROMBOT, receiveFromBotDefault, profileCapabilityNames)
-    this.getBotMessage = this._loadFunction(Capabilities.WEBDRIVERIO_GETBOTMESSAGE, getBotMessageDefault, profileCapabilityNames)
+    this.openBrowser = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBROWSER, openBrowserDefault)
+    this.openBot = this._loadFunction(Capabilities.WEBDRIVERIO_OPENBOT, openBotDefault)
+    this.sendToBot = this._loadFunction(Capabilities.WEBDRIVERIO_SENDTOBOT, sendToBotDefault)
+    this.receiveFromBot = this._loadFunction(Capabilities.WEBDRIVERIO_RECEIVEFROMBOT, receiveFromBotDefault)
+    this.getBotMessage = this._loadFunction(Capabilities.WEBDRIVERIO_GETBOTMESSAGE, getBotMessageDefault)
 
     if (this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES] && !_.isNumber(this.caps[Capabilities.WEBDRIVERIO_IGNOREWELCOMEMESSAGES])) throw new Error('WEBDRIVERIO_IGNOREWELCOMEMESSAGES capability requires a number')
 
@@ -1331,58 +1329,15 @@ class BotiumConnectorWebdriverIO {
     this.queue = null
   }
 
-  _loadFunction (capName, defaultFunction, allowCapabilities) {
-    if (!this.caps[capName]) {
+  _loadFunction (capName, defaultFunction) {
+    const hook = HookUtils.getHook(this.caps, this.caps[capName])
+    if (!hook) {
       return defaultFunction
-    }
-
-    const allowUnsafe = (allowCapabilities && allowCapabilities.indexOf(capName) >= 0) || !!this.caps[CoreCapabilities.SECURITY_ALLOW_UNSAFE]
-
-    const loadErr = []
-    if (allowUnsafe) {
-      if (_.isFunction(this.caps[capName])) {
-        return this.caps[capName]
-      }
-
-      try {
-        const c = require(this.caps[capName])
-        if (_.isFunction(c)) {
-          debug(`Loaded Capability ${capName} function from NPM package ${this.caps[capName]}`)
-          return c
-        } else throw new Error(`NPM package ${this.caps[capName]} not exporting single function.`)
-      } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from NPM package ${this.caps[capName]} failed - ${err.message || util.inspect(err)}`)
-      }
-
-      const tryLoadFile = path.resolve(process.cwd(), this.caps[capName])
-      try {
-        const c = require(tryLoadFile)
-        if (_.isFunction(c)) {
-          debug(`Loaded Capability ${capName} function from file ${tryLoadFile}`)
-          return (...args) => {
-            debug(`Running ${capName} function from file ${tryLoadFile} ...`)
-            return c(...args)
-          }
-        } else throw new Error(`File ${tryLoadFile} not exporting single function.`)
-      } catch (err) {
-        loadErr.push(`Loading Capability ${capName} function from file ${tryLoadFile} failed - ${err.message || util.inspect(err)}`)
-      }
-    }
-
-    loadErr.forEach(d => debug(d))
-
-    if (!allowUnsafe) {
-      throw new BotiumError(
-        `Security Error. Using ${capName} capability is not allowed`,
-        {
-          type: 'security',
-          subtype: 'allow unsafe',
-          source: 'botium-connector-webdriverio',
-          cause: { capName, cap: (_.isFunction(this.caps[capName]) ? '<function>' : this.caps[capName]) }
-        }
-      )
     } else {
-      throw new Error(`Failed to fetch Capability ${capName} function, no idea how to load ...`)
+      return (...args) => {
+        debug(`Running ${capName} hook function...`)
+        return HookUtils.executeHook(this.caps, hook, ...args)
+      }
     }
   }
 

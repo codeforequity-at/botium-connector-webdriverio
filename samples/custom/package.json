@@ -2,6 +2,7 @@
   "name": "custom",
   "version": "1.0.0",
   "scripts": {
+    "postinstall": "cd ../../ && npm install --no-save https://github.com/codeforequity-at/botium-core.git#feature/BOT-4047-box-replace-vm2-dependency chromedriver@111 --no-save",
     "test": "mocha spec",
     "test-appium": "cross-env BOTIUM_CONFIG=botium-testobjects.json mocha spec",
     "test-perfecto": "cross-env BOTIUM_CONFIG=botium-perfectolabs.json mocha spec"
