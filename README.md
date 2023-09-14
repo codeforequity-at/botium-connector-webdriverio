@@ -157,7 +157,6 @@ Customization is done by injection Node.js-Code into Botium. The code to execute
 * a pointer to a _Javascript Function_ (not possible when configuration is done in _botium.json_ file)
 * the name of an _NPM Package_, which exports a single function
 * a _Javascript file name_ relative to the current working directory, which exports a single function (see below)
-* _Javascript code_ to be compiled and executed (see below)
 
 **See _botium.json_ in the _samples/custom_ folder for examples**
 
@@ -172,21 +171,6 @@ module.exports = async (container, browser) => {
   await startChat.click()
 }
 ```
-
-### Placing code in a capability as String
-
-When placing the code in a string capability, make sure to return a Promise like this:
-
-    "WEBDRIVERIO_OPENBOT": "module.exports = container.findElement('.troy__start-icon')).then(startChat => startChat.waitForClickable({ timeout: 20000 }).then(() => startChat.click()))"
-
-Or use async/await like this:
-
-    "WEBDRIVERIO_OPENBOT": "module.exports = (async () => { const startChat = await container.findElement('#StartChat'); await startChat.waitForClickable({ timeout: 20000 }); await startChat.click();})()",
-
-The parameters handed over to the function (as global variables) are described below.
-
-The capabilities representing the extension points are:
-
 ### Parameters
 
 **container**
@@ -214,7 +198,7 @@ Pre-defined behaviour:
 * If there are buttons configured (see _WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS_), click them one after the other
 * Waiting until the input text field is visible
 
-This has to be customized in most cases - for example, to click away the typical "Cookie"-warning from a website, clicking on the chatbot button at the bottom right of the website, ... In cases when it is not sufficient to click buttons (see _WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS_), it is possible to specify Javascript code.
+This has to be customized in most cases - for example, to click away the typical "Cookie"-warning from a website, clicking on the chatbot button at the bottom right of the website, ... 
 
 The _samples/custom_ folder has an example for this scenario.
 
@@ -384,19 +368,37 @@ Implicit timeout for all element locators
 ### WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS
 A list of [Webdriver selectors](https://webdriver.io/docs/selectors.html) for clickable elements which will be clicked one after the other to navigate to the actual chatbot widget.
 
-Special meaning for Hybrid smartphone apps:
-* Starting a selector with _context:_ will switch the context to an embedded webview, for example _context:webview_ (for a named context) or _context:1_ (by index)
+Optional/mandatory steps:
+* For a selector starting with _!_ any failure will stop script execution (the default)
+* For a selector starting with _?_ any failure will be shown in the log but script execution will continue
 
-Special meaning for iFrame navigation:
+Clicking elements:
+* Starting a selector with _click:_ will wait for the element to be clickable and then apply a click to it
+* This is also the default behaviour, if none of the other magic words is used
+
+Magic words for elements:
+* Starting a selector with _waitForDisplayed:_ will wait for the element to be displayed
+* Starting a selector with _waitForClickable:_ will wait for the element to be clickable
+* Starting a selector with _waitForEnabled:_ will wait for the element to be enabled
+* Additional parameter can be given to specify the timeout period _waitForDisplayed:#button-id:5000_ (waiting 5000ms for a button)
+
+Magic words for iFrame navigation:
 * Starting a selector with _iframe:_ will switch all subsequent selectors to the iFrame selected by the selector
 * Switching back to the iFrame parent can be done with the selector with _iframe:parent_
 
-Special meaning for form field input:
+Magic words for Window/Tab navigation:
+* Starting a selector with switch:_ will switch the context to the window/tab with the given title/url
+
+Magic words for form field input:
 * Starting a selector with _setvalue:_ will set the value of an input field. Value and input field selector are part of the element: _setvalue:value-to-set:my-field-selector_
 * Starting a selector with _addvalue:_ will append the value to an input field. Value and input field selector are part of the element: _addvalue:value-to-append:my-field-selector_
+* Starting a selector with _sendkeys:_ will send the keys to an input field. Value and input field selector are part of the element: _sendkeys:value-to-send:my-field-selector_
 * When using _Enter_ as value then the Enter key will be sent instead
 
-Other special meaning:
+Magic words for Hybrid smartphone apps:
+* Starting a selector with _context:_ will switch the context to an embedded webview, for example _context:webview_ (for a named context) or _context:1_ (by index)
+
+Other magic words:
 * _pause:1000_ will pause for 1 second (1000ms)
 * _dumphtml_ will dump the current page source to the botiumwork directory
 
