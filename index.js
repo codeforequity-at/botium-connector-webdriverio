@@ -172,7 +172,7 @@ const sendToBotDefault = async (container, browser, msg) => {
 
   if (msg.forms && msg.forms.length > 0) {
     for (const form of msg.forms) {
-      if (!form.value) continue
+      if (!form.value || !form.name) continue
 
       let formElementSelector = null
       let formElement = null
@@ -180,8 +180,10 @@ const sendToBotDefault = async (container, browser, msg) => {
         formElement = container.formElementsById[form.name]
       } else if (container.formElementsByName[form.name]) {
         formElement = container.formElementsByName[form.name]
+      } else if (form.name.startsWith('//')) {
+        formElementSelector = form.name
       } else {
-        formElementSelector = `//[@id='#${form.name}'][last()] | //[@name='${form.name}'][last()]`
+        formElementSelector = `//*[@id='#${form.name}'][last()] | //*[@name='${form.name}'][last()]`
       }
       if (formElementSelector) {
         debug(`Using form element: ${formElementSelector}`)
