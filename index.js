@@ -761,7 +761,7 @@ class BotiumConnectorWebdriverIO {
           debug(`clickSeries - switched to window/tab #${i + 1}: ${clickSelector}`)
         } else if (clickSelector.toLowerCase().startsWith('setvalue:') || clickSelector.toLowerCase().startsWith('sendkeys:') || clickSelector.toLowerCase().startsWith('addvalue:')) {
           const parts = clickSelector.split(':', 3)
-          const action = parts[0]
+          const action = parts[0].toLowerCase()
           const value = parts[1]
           const inputElementSelector = parts[2]
 
@@ -789,6 +789,24 @@ class BotiumConnectorWebdriverIO {
             } else {
               await inputElement.addValue(convertToSetValue(value), { translateToUnicode: false })
             }
+          }
+        } else if (clickSelector.toLowerCase().startsWith('selectbyvalue:') || clickSelector.toLowerCase().startsWith('selectbyname:') || clickSelector.toLowerCase().startsWith('selectbytext:') || clickSelector.toLowerCase().startsWith('selectbyindex:')) {
+          const parts = clickSelector.split(':', 3)
+          const action = parts[0].toLowerCase()
+          const value = parts[1]
+          const inputElementSelector = parts[2]
+
+          debug(`clickSeries - trying to ${action} ${value} #${i + 1}: ${inputElementSelector}`)
+          const inputElement = await this.findElement(inputElementSelector)
+
+          if (action === 'selectbyvalue') {
+            await inputElement.selectByAttribute('value', value)
+          } else if (action === 'selectbyname') {
+            await inputElement.selectByAttribute('name', value)
+          } else if (action === 'selectbytext') {
+            await inputElement.selectByVisibleText(value)
+          } else if (action === 'selectbyindex') {
+            await inputElement.selectByIndex(value)
           }
         } else if (clickSelector.toLowerCase().startsWith('context:')) {
           let context = clickSelector.split(':', 2)[1]
