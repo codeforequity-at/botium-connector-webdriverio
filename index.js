@@ -12,7 +12,7 @@ const chromedriver = require('chromedriver')
 const selenium = require('selenium-standalone')
 const _ = require('lodash')
 const xpath = require('xpath')
-const { DOMParser } = require('xmldom')
+const { DOMParser } = require('@xmldom/xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
 
 const { HookUtils } = require('botium-core')
