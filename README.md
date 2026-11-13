@@ -311,6 +311,19 @@ Reset app state before testing. See [Appium documentation](http://appium.io/docs
 Depending on the Selenium infrastructure an "appium:" prefix for the Appium-specific capabilities might be required.
 Check the documentation of your device cloud provider or your Selenium grid.
 
+### WEBDRIVERIO_HTTP_BASIC_USERNAME / WEBDRIVERIO_HTTP_BASIC_PASSWORD
+Credentials for HTTP Basic Auth on the page under test.
+
+Before opening `WEBDRIVERIO_URL`, Botium sends `Authorization: Basic …` on every request from the browser. It uses the Chrome DevTools Protocol (`Network.enable` and `Network.setExtraHTTPHeaders`) through the running ChromeDriver session. A custom `WEBDRIVERIO_OPENBROWSER` script is not needed for this.
+
+Both capabilities must be set together. The password may be empty. The browser has to be Chromium-based (Chrome or Edge). The header is sent for every request in that session, including later XHR calls.
+
+```
+"WEBDRIVERIO_HTTP_BASIC_USERNAME": "admin",
+"WEBDRIVERIO_HTTP_BASIC_PASSWORD": "secret",
+"WEBDRIVERIO_URL": "https://example.com/chat"
+```
+
 ### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
 HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).
 
