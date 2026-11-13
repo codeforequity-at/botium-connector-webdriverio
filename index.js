@@ -3,7 +3,6 @@ const path = require('path')
 const fs = require('fs')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
-const { UNICODE_CHARACTERS } = require('@wdio/utils')
 const pretty = require('pretty')
 const Mustache = require('mustache')
 const crypto = require('crypto')
@@ -14,6 +13,12 @@ const _ = require('lodash')
 const xpath = require('xpath')
 const { DOMParser } = require('@xmldom/xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
+
+// ChromeDriver 115 removed --url-base and serves WebDriver at /.
+const usesLegacyChromeDriverHub = () => {
+  const major = parseInt(String(chromedriver.version || '').split('.')[0], 10)
+  return !Number.isFinite(major) || major < 115
+}
 
 const { HookUtils } = require('botium-core')
 
@@ -160,7 +165,7 @@ const openBotDefault = async (container, browser) => {
 
 const convertToSetValue = (str, includeEnter = false) => {
   let result = str || ''
-  if (includeEnter) result = result + UNICODE_CHARACTERS.Enter
+  if (includeEnter) result = result + webdriverio.Key.Enter
   return result
 }
 
@@ -941,7 +946,11 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
       this.chromePort = Math.floor(Math.random() * 10000 + 40000)
-      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || [`--port=${this.chromePort}`, '--url-base=wd/hub']
+      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || (
+        usesLegacyChromeDriverHub()
+          ? [`--port=${this.chromePort}`, '--url-base=wd/hub']
+          : [`--port=${this.chromePort}`]
+      )
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]) {
         let addArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]
         if (_.isString(addArgs)) {
@@ -1024,7 +1033,7 @@ class BotiumConnectorWebdriverIO {
         options.protocol = 'http'
         options.hostname = '127.0.0.1'
         options.port = this.chromePort
-        options.path = '/wd/hub'
+        options.path = usesLegacyChromeDriverHub() ? '/wd/hub' : '/'
         options.capabilities = Object.assign({
           browserName: 'chrome',
           'goog:chromeOptions': {

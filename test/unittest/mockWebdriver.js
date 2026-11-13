@@ -6,6 +6,7 @@ const mockElement = {
 
 jest.mock('webdriverio', () => {
   return {
+    Key: { Enter: '\uE007' },
     remote: () => ({
       url: jest.fn().mockName('url'),
       getTitle: jest.fn().mockName('getTitle'),

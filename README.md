@@ -103,7 +103,7 @@ Setting the capability "WEBDRIVERIO_START_CHROMEDRIVER" to true will make Botium
 
     This version of ChromeDriver only supports Chrome version XX
 
-In this case you will either have to install the requested Chrome version, our have to update the chromedriver library to match your Chrome version. If you have Chrome 83.xxx installed, you can do this:
+In this case you will either have to install the requested Chrome version, our have to update the chromedriver library to match your Chrome version. This package pins ChromeDriver 157, which drives Chrome 157, and requires Node.js 22.23.4 or newer. If you have Chrome 83.xxx installed, you can do this:
 
     > npm install chromedriver@83 --no-save
 
@@ -588,7 +588,7 @@ The options are handed over to Selenium-standalone 1:1 - see [here](https://gith
 ### WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_CHROMEDRIVER_ARGS/WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS
 _Default: false_
 
-_Default args: --port=4444 --url-base=wd/hub_
+_Default args: --port=&lt;random&gt;. ChromeDriver 114 and older also get --url-base=wd/hub, and the WebDriver path is /wd/hub. ChromeDriver 115 and newer listen on /._
 
 Start the a headless Chrome browser automatically with the given args (WEBDRIVERIO_START_CHROMEDRIVER_ARGS). Use the WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS capability to add an additional arg to the default args
 
