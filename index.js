@@ -3,7 +3,6 @@ const path = require('path')
 const fs = require('fs')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
-const { UNICODE_CHARACTERS } = require('@wdio/utils')
 const pretty = require('pretty')
 const Mustache = require('mustache')
 const crypto = require('crypto')
@@ -14,6 +13,12 @@ const _ = require('lodash')
 const xpath = require('xpath')
 const { DOMParser } = require('@xmldom/xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
+
+// ChromeDriver 115 removed --url-base and serves WebDriver at /.
+const usesLegacyChromeDriverHub = () => {
+  const major = parseInt(String(chromedriver.version || '').split('.')[0], 10)
+  return !Number.isFinite(major) || major < 115
+}
 
 const { HookUtils } = require('botium-core')
 
@@ -54,6 +59,8 @@ const Capabilities = {
   WEBDRIVERIO_HTTP_PROXY: 'WEBDRIVERIO_HTTP_PROXY',
   WEBDRIVERIO_HTTPS_PROXY: 'WEBDRIVERIO_HTTPS_PROXY',
   WEBDRIVERIO_NO_PROXY: 'WEBDRIVERIO_NO_PROXY',
+  WEBDRIVERIO_HTTP_BASIC_USERNAME: 'WEBDRIVERIO_HTTP_BASIC_USERNAME',
+  WEBDRIVERIO_HTTP_BASIC_PASSWORD: 'WEBDRIVERIO_HTTP_BASIC_PASSWORD',
   WEBDRIVERIO_SHADOW_ROOT: 'WEBDRIVERIO_SHADOW_ROOT',
   WEBDRIVERIO_IMPLICIT_TIMEOUT: 'WEBDRIVERIO_IMPLICIT_TIMEOUT',
   WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS: 'WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS',
@@ -160,7 +167,7 @@ const openBotDefault = async (container, browser) => {
 
 const convertToSetValue = (str, includeEnter = false) => {
   let result = str || ''
-  if (includeEnter) result = result + UNICODE_CHARACTERS.Enter
+  if (includeEnter) result = result + webdriverio.Key.Enter
   return result
 }
 
@@ -934,6 +941,15 @@ class BotiumConnectorWebdriverIO {
         throw new Error(`WEBDRIVERIO_START_SELENIUM_OPTS JSON.parse failed: ${err.message || err}`)
       }
     }
+
+    const basicUser = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_USERNAME]
+    const basicPass = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_PASSWORD]
+    const basicUserSet = !_.isNil(basicUser) && `${basicUser}` !== ''
+    const basicPassSet = !_.isNil(basicPass)
+    if (basicUserSet || basicPassSet) {
+      if (!basicUserSet || !basicPassSet) throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME and WEBDRIVERIO_HTTP_BASIC_PASSWORD must be set together')
+      if (!_.isString(basicUser) || !_.isString(basicPass)) throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME and WEBDRIVERIO_HTTP_BASIC_PASSWORD must be strings')
+    }
   }
 
   async Build () {
@@ -941,7 +957,11 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
       this.chromePort = Math.floor(Math.random() * 10000 + 40000)
-      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || [`--port=${this.chromePort}`, '--url-base=wd/hub']
+      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || (
+        usesLegacyChromeDriverHub()
+          ? [`--port=${this.chromePort}`, '--url-base=wd/hub']
+          : [`--port=${this.chromePort}`]
+      )
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]) {
         let addArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]
         if (_.isString(addArgs)) {
@@ -1024,7 +1044,7 @@ class BotiumConnectorWebdriverIO {
         options.protocol = 'http'
         options.hostname = '127.0.0.1'
         options.port = this.chromePort
-        options.path = '/wd/hub'
+        options.path = usesLegacyChromeDriverHub() ? '/wd/hub' : '/'
         options.capabilities = Object.assign({
           browserName: 'chrome',
           'goog:chromeOptions': {
@@ -1055,6 +1075,8 @@ class BotiumConnectorWebdriverIO {
           implicit: this.caps[Capabilities.WEBDRIVERIO_IMPLICIT_TIMEOUT]
         })
       }
+
+      await this._registerHttpBasicAuth()
 
       if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
@@ -1323,6 +1345,33 @@ class BotiumConnectorWebdriverIO {
         this.queue.push(() => this._handleNewElements())
       }
     }, 1000)
+  }
+
+  async _sendDevToolsCommand (method, params) {
+    if (typeof this.browser.cdp === 'function') {
+      const dot = method.indexOf('.')
+      return this.browser.cdp(method.slice(0, dot), method.slice(dot + 1), params)
+    }
+    if (typeof this.browser.sendCommandAndGetResult === 'function') {
+      return this.browser.sendCommandAndGetResult(method, params)
+    }
+    if (typeof this.browser.sendCommand === 'function') {
+      return this.browser.sendCommand(method, params)
+    }
+    throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME requires a Chromium session (Chrome or Edge). Botium sets the Authorization header through the Chrome DevTools Protocol.')
+  }
+
+  async _registerHttpBasicAuth () {
+    const username = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_USERNAME]
+    const password = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_PASSWORD]
+    if (_.isNil(username) || `${username}` === '' || _.isNil(password)) return
+
+    const token = Buffer.from(`${username}:${password}`).toString('base64')
+    await this._sendDevToolsCommand('Network.enable', {})
+    await this._sendDevToolsCommand('Network.setExtraHTTPHeaders', {
+      headers: { Authorization: `Basic ${token}` }
+    })
+    debug(`Registered HTTP basic auth for user ${username}`)
   }
 
   async _stopBrowser () {
