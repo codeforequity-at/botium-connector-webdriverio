@@ -314,15 +314,30 @@ Check the documentation of your device cloud provider or your Selenium grid.
 ### WEBDRIVERIO_HTTP_BASIC_USERNAME / WEBDRIVERIO_HTTP_BASIC_PASSWORD
 Credentials for HTTP Basic Auth on the page under test.
 
-Before opening `WEBDRIVERIO_URL`, Botium sends `Authorization: Basic …` on every request from the browser. It uses the Chrome DevTools Protocol (`Network.enable` and `Network.setExtraHTTPHeaders`) through the running ChromeDriver session. A custom `WEBDRIVERIO_OPENBROWSER` script is not needed for this.
+Before opening `WEBDRIVERIO_URL`, Botium adds `Authorization: Basic …` only to requests with the same origin as that URL. A request to another host, for example a CDN, is left unchanged. The header is injected through a Chrome DevTools `Fetch` intercept on the page target. It is not sent as a global browser header, and WebDriver BiDi is not required.
 
-Both capabilities must be set together. The password may be empty. The browser has to be Chromium-based (Chrome or Edge). The header is sent for every request in that session, including later XHR calls.
+The browser has to be Chromium-based (Chrome or Edge) and the session has to expose a DevTools debugger address (`goog:chromeOptions.debuggerAddress` or `ms:edgeOptions.debuggerAddress`). Both capabilities must be strings and must be set together. The password may be empty.
+
+Do not install a second `Fetch` intercept in `WEBDRIVERIO_OPENBOT`. The OpenBot script can still open the widget. With these capabilities set, it should not add `Authorization` itself.
 
 ```
 "WEBDRIVERIO_HTTP_BASIC_USERNAME": "admin",
 "WEBDRIVERIO_HTTP_BASIC_PASSWORD": "secret",
 "WEBDRIVERIO_URL": "https://example.com/chat"
 ```
+
+### WEBDRIVERIO_BROWSERLOG
+_Default: error_
+
+Copies Chrome console output and browser log entries into the Botium debug log (`DEBUG=botium-connector-webdriverio`).
+
+* _false_ / _off_ / _none_ — disabled
+* _error_ — console errors and uncaught exceptions (default)
+* _warn_ — warnings and errors
+* _info_ — info, warnings and errors
+* _all_ — also debug and verbose messages
+
+Console and JavaScript entries from the DevTools log domain are skipped when the same text is already reported as a console event. Network and security entries are kept. If the session has no DevTools debugger address, logging is skipped and startup continues. When HTTP Basic Auth is enabled as well, both features share one DevTools connection.
 
 ### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
 HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).

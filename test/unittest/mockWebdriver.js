@@ -5,7 +5,8 @@ const mockElement = {
 }
 
 const mockBrowserBehavior = {
-  devtools: 'sendCommandAndGetResult'
+  devtools: 'sendCommandAndGetResult',
+  debuggerAddress: null
 }
 
 jest.mock('webdriverio', () => {
@@ -27,7 +28,13 @@ jest.mock('webdriverio', () => {
         $: jest.fn(() => mockElement).mockName('$'),
         $$: jest.fn(() => mockElement).mockName('$$'),
         deleteSession: jest.fn().mockName('deleteSession'),
-        saveScreenshot: jest.fn().mockName('saveScreenshot')
+        saveScreenshot: jest.fn().mockName('saveScreenshot'),
+        capabilities: {}
+      }
+      if (mockBrowserBehavior.debuggerAddress) {
+        browser.capabilities['goog:chromeOptions'] = {
+          debuggerAddress: mockBrowserBehavior.debuggerAddress
+        }
       }
       if (mockBrowserBehavior.devtools === 'cdp') {
         browser.cdp = jest.fn().mockName('cdp')
