@@ -103,7 +103,7 @@ Setting the capability "WEBDRIVERIO_START_CHROMEDRIVER" to true will make Botium
 
     This version of ChromeDriver only supports Chrome version XX
 
-In this case you will either have to install the requested Chrome version, our have to update the chromedriver library to match your Chrome version. If you have Chrome 83.xxx installed, you can do this:
+In this case you will either have to install the requested Chrome version, our have to update the chromedriver library to match your Chrome version. This package pins ChromeDriver 157, which drives Chrome 157, and requires Node.js 22.23.4 or newer. If you have Chrome 83.xxx installed, you can do this:
 
     > npm install chromedriver@83 --no-save
 
@@ -310,6 +310,34 @@ Reset app state before testing. See [Appium documentation](http://appium.io/docs
 ### WEBDRIVERIO_USE_APPIUM_PREFIX
 Depending on the Selenium infrastructure an "appium:" prefix for the Appium-specific capabilities might be required.
 Check the documentation of your device cloud provider or your Selenium grid.
+
+### WEBDRIVERIO_HTTP_BASIC_USERNAME / WEBDRIVERIO_HTTP_BASIC_PASSWORD
+Credentials for HTTP Basic Auth on the page under test.
+
+Before opening `WEBDRIVERIO_URL`, Botium adds `Authorization: Basic …` only to requests with the same origin as that URL. A request to another host, for example a CDN, is left unchanged. The header is injected through a Chrome DevTools `Fetch` intercept on the page target. It is not sent as a global browser header, and WebDriver BiDi is not required.
+
+The browser has to be Chromium-based (Chrome or Edge) and the session has to expose a DevTools debugger address (`goog:chromeOptions.debuggerAddress` or `ms:edgeOptions.debuggerAddress`). Both capabilities must be strings and must be set together. The password may be empty.
+
+Do not install a second `Fetch` intercept in `WEBDRIVERIO_OPENBOT`. The OpenBot script can still open the widget. With these capabilities set, it should not add `Authorization` itself.
+
+```
+"WEBDRIVERIO_HTTP_BASIC_USERNAME": "admin",
+"WEBDRIVERIO_HTTP_BASIC_PASSWORD": "secret",
+"WEBDRIVERIO_URL": "https://example.com/chat"
+```
+
+### WEBDRIVERIO_BROWSERLOG
+_Default: error_
+
+Copies Chrome console output and browser log entries into the Botium debug log (`DEBUG=botium-connector-webdriverio`).
+
+* _false_ / _off_ / _none_ — disabled
+* _error_ — console errors and uncaught exceptions (default)
+* _warn_ — warnings and errors
+* _info_ — info, warnings and errors
+* _all_ — also debug and verbose messages
+
+Console and JavaScript entries from the DevTools log domain are skipped when the same text is already reported as a console event. Network and security entries are kept. If the session has no DevTools debugger address, logging is skipped and startup continues. When HTTP Basic Auth is enabled as well, both features share one DevTools connection.
 
 ### WEBDRIVERIO_HTTP_PROXY / WEBDRIVERIO_HTTPS_PROXY / WEBDRIVERIO_NO_PROXY
 HTTP(S) proxy settings and exception rules used between browser and internet - see [here](https://webdriver.io/docs/proxy.html).
@@ -588,7 +616,7 @@ The options are handed over to Selenium-standalone 1:1 - see [here](https://gith
 ### WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_CHROMEDRIVER_ARGS/WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS
 _Default: false_
 
-_Default args: --port=4444 --url-base=wd/hub_
+_Default args: --port=&lt;random&gt;. ChromeDriver 114 and older also get --url-base=wd/hub, and the WebDriver path is /wd/hub. ChromeDriver 115 and newer listen on /._
 
 Start the a headless Chrome browser automatically with the given args (WEBDRIVERIO_START_CHROMEDRIVER_ARGS). Use the WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS capability to add an additional arg to the default args
 

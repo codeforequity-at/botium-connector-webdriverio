@@ -3,7 +3,6 @@ const path = require('path')
 const fs = require('fs')
 const mime = require('mime-types')
 const webdriverio = require('webdriverio')
-const { UNICODE_CHARACTERS } = require('@wdio/utils')
 const pretty = require('pretty')
 const Mustache = require('mustache')
 const crypto = require('crypto')
@@ -15,6 +14,12 @@ const xpath = require('xpath')
 const { DOMParser } = require('@xmldom/xmldom')
 const debug = require('debug')('botium-connector-webdriverio')
 
+// ChromeDriver 115 removed --url-base and serves WebDriver at /.
+const usesLegacyChromeDriverHub = () => {
+  const major = parseInt(String(chromedriver.version || '').split('.')[0], 10)
+  return !Number.isFinite(major) || major < 115
+}
+
 const { HookUtils } = require('botium-core')
 
 const dialogflowComProfile = require('./profiles/dialogflow_com')
@@ -24,6 +29,178 @@ const botbuilderWebchatV4Profile = require('./profiles/botbuilder_webchat_v4')
 const botbuilderWebchatV41Profile = require('./profiles/botbuilder_webchat_v4_10_0')
 const watsonpreviewProfile = require('./profiles/watsonpreview')
 const whatsappProfile = require('./profiles/whatsapp')
+
+const browserLogRank = {
+  all: 0,
+  info: 20,
+  warn: 30,
+  error: 40
+}
+
+const browserConsoleRank = {
+  debug: 10,
+  verbose: 10,
+  info: 20,
+  log: 20,
+  warning: 30,
+  warn: 30,
+  error: 40
+}
+
+const browserLogSourcesToSkip = {
+  console: true,
+  javascript: true
+}
+
+const devtoolsValueText = (value) => {
+  if (value === undefined || value === null) return ''
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value)
+  } catch (err) {
+    return String(value)
+  }
+}
+
+const devtoolsArgText = (arg) => {
+  if (!arg) return ''
+  if (arg.unserializableValue) return String(arg.unserializableValue)
+  if (arg.type === 'string' || arg.type === 'number' || arg.type === 'boolean') return devtoolsValueText(arg.value)
+  if (arg.description) return arg.description
+  if (arg.value !== undefined) return devtoolsValueText(arg.value)
+  return arg.type || ''
+}
+
+const devtoolsLocation = (url, lineNumber) => {
+  if (!url) return ''
+  if (!Number.isFinite(lineNumber) || lineNumber < 0) return url
+  return `${url}:${lineNumber + 1}`
+}
+
+const devtoolsHeaderEntries = (headers) => {
+  if (!headers) return []
+  if (Array.isArray(headers)) {
+    return headers.map((header) => ({ name: header.name, value: String(header.value) }))
+  }
+  return Object.keys(headers).map((name) => ({ name, value: String(headers[name]) }))
+}
+
+let webSocketImpl = null
+const loadWebSocket = () => {
+  if (webSocketImpl) return webSocketImpl
+  try {
+    webSocketImpl = require('ws')
+  } catch (err) {
+    throw new Error(`Chrome DevTools requires the ws package (${err.message || err})`)
+  }
+  if (!webSocketImpl) throw new Error('Chrome DevTools requires the ws package')
+  return webSocketImpl
+}
+
+class DevToolsClient {
+  constructor (Socket) {
+    this.Socket = Socket
+    this.socket = null
+    this.nextId = 0
+    this.pending = new Map()
+    this.onEvent = null
+  }
+
+  async connect (address) {
+    const versionUrl = /^https?:\/\//i.test(address)
+      ? `${address.replace(/\/$/, '')}/json/version`
+      : `http://${address}/json/version`
+    const response = await fetch(versionUrl)
+    if (!response.ok) throw new Error(`DevTools version endpoint returned HTTP ${response.status}`)
+    const version = await response.json()
+    if (!version || !version.webSocketDebuggerUrl) throw new Error('DevTools version endpoint did not return a websocket URL')
+
+    const socket = new this.Socket(version.webSocketDebuggerUrl)
+    this.socket = socket
+    await new Promise((resolve, reject) => {
+      const onOpen = () => {
+        cleanup()
+        resolve()
+      }
+      const onError = (err) => {
+        cleanup()
+        reject(err instanceof Error ? err : new Error(String(err && err.message ? err.message : err)))
+      }
+      const timer = setTimeout(() => {
+        cleanup()
+        reject(new Error(`timed out connecting to Chrome DevTools at ${address}`))
+      }, 10000)
+      const cleanup = () => {
+        clearTimeout(timer)
+        socket.off('open', onOpen)
+        socket.off('error', onError)
+      }
+      socket.once('open', onOpen)
+      socket.once('error', onError)
+    })
+    socket.on('error', (err) => {
+      debug(`Chrome DevTools websocket error: ${err && err.message ? err.message : err}`)
+    })
+    socket.on('close', () => {
+      this._rejectPending(new Error('Chrome DevTools websocket closed'))
+    })
+    socket.on('message', (raw) => this._onMessage(raw))
+  }
+
+  send (method, params, sessionId) {
+    const id = ++this.nextId
+    return new Promise((resolve, reject) => {
+      if (!this.socket || this.socket.readyState !== this.Socket.OPEN) {
+        reject(new Error('Chrome DevTools websocket is not open'))
+        return
+      }
+      this.pending.set(id, { resolve, reject })
+      const message = { id, method, params: params || {} }
+      if (sessionId) message.sessionId = sessionId
+      this.socket.send(JSON.stringify(message))
+    })
+  }
+
+  close () {
+    this._rejectPending(new Error('Chrome DevTools websocket closed'))
+    const socket = this.socket
+    this.socket = null
+    if (!socket) return
+    try {
+      socket.close()
+    } catch (err) {
+      debug(`Failed to close Chrome DevTools websocket: ${err.message || err}`)
+    }
+  }
+
+  _rejectPending (err) {
+    for (const waiter of this.pending.values()) waiter.reject(err)
+    this.pending.clear()
+  }
+
+  _onMessage (raw) {
+    let message
+    try {
+      message = JSON.parse(raw.toString())
+    } catch (err) {
+      return
+    }
+    if (message.id && this.pending.has(message.id)) {
+      const waiter = this.pending.get(message.id)
+      this.pending.delete(message.id)
+      if (message.error) waiter.reject(new Error(message.error.message || 'DevTools command failed'))
+      else waiter.resolve(message.result)
+      return
+    }
+    if (message.method && this.onEvent) {
+      try {
+        this.onEvent(message)
+      } catch (err) {
+        debug(`DevTools event handler failed: ${err.message || err}`)
+      }
+    }
+  }
+}
 
 const profiles = {
   dialogflow_com: dialogflowComProfile,
@@ -54,6 +231,8 @@ const Capabilities = {
   WEBDRIVERIO_HTTP_PROXY: 'WEBDRIVERIO_HTTP_PROXY',
   WEBDRIVERIO_HTTPS_PROXY: 'WEBDRIVERIO_HTTPS_PROXY',
   WEBDRIVERIO_NO_PROXY: 'WEBDRIVERIO_NO_PROXY',
+  WEBDRIVERIO_HTTP_BASIC_USERNAME: 'WEBDRIVERIO_HTTP_BASIC_USERNAME',
+  WEBDRIVERIO_HTTP_BASIC_PASSWORD: 'WEBDRIVERIO_HTTP_BASIC_PASSWORD',
   WEBDRIVERIO_SHADOW_ROOT: 'WEBDRIVERIO_SHADOW_ROOT',
   WEBDRIVERIO_IMPLICIT_TIMEOUT: 'WEBDRIVERIO_IMPLICIT_TIMEOUT',
   WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS: 'WEBDRIVERIO_INPUT_NAVIGATION_BUTTONS',
@@ -104,6 +283,7 @@ const Capabilities = {
   WEBDRIVERIO_SCREENSHOTS: 'WEBDRIVERIO_SCREENSHOTS',
   WEBDRIVERIO_VIEWPORT_SIZE: 'WEBDRIVERIO_VIEWPORT_SIZE',
   WEBDRIVERIO_SELENIUM_DEBUG: 'WEBDRIVERIO_SELENIUM_DEBUG',
+  WEBDRIVERIO_BROWSERLOG: 'WEBDRIVERIO_BROWSERLOG',
   WEBDRIVERIO_SCREENSHOTS_DEBUG: 'WEBDRIVERIO_SCREENSHOTS_DEBUG',
   WEBDRIVERIO_START_SELENIUM: 'WEBDRIVERIO_START_SELENIUM',
   WEBDRIVERIO_START_SELENIUM_OPTS: 'WEBDRIVERIO_START_SELENIUM_OPTS',
@@ -160,7 +340,7 @@ const openBotDefault = async (container, browser) => {
 
 const convertToSetValue = (str, includeEnter = false) => {
   let result = str || ''
-  if (includeEnter) result = result + UNICODE_CHARACTERS.Enter
+  if (includeEnter) result = result + webdriverio.Key.Enter
   return result
 }
 
@@ -923,6 +1103,10 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS] && ['none', 'always', 'onbotsays', 'onstop'].indexOf(this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS]) < 0) throw new Error('WEBDRIVERIO_SCREENSHOTS not in "none"/"always"/"onbotsays"/"onstop"')
 
+    if (!_.isNil(this.caps[Capabilities.WEBDRIVERIO_BROWSERLOG]) && this.caps[Capabilities.WEBDRIVERIO_BROWSERLOG] !== '' && this._browserLogMinRank() === undefined) {
+      throw new Error('WEBDRIVERIO_BROWSERLOG must be false, "error", "warn", "info" or "all"')
+    }
+
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER] && this.caps[Capabilities.WEBDRIVERIO_START_SELENIUM]) {
       throw new Error('WEBDRIVERIO_START_CHROMEDRIVER and WEBDRIVERIO_START_SELENIUM are invalid in combination')
     }
@@ -934,6 +1118,15 @@ class BotiumConnectorWebdriverIO {
         throw new Error(`WEBDRIVERIO_START_SELENIUM_OPTS JSON.parse failed: ${err.message || err}`)
       }
     }
+
+    const basicUser = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_USERNAME]
+    const basicPass = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_PASSWORD]
+    const basicUserSet = !_.isNil(basicUser) && `${basicUser}` !== ''
+    const basicPassSet = !_.isNil(basicPass)
+    if (basicUserSet || basicPassSet) {
+      if (!basicUserSet || !basicPassSet) throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME and WEBDRIVERIO_HTTP_BASIC_PASSWORD must be set together')
+      if (!_.isString(basicUser) || !_.isString(basicPass)) throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME and WEBDRIVERIO_HTTP_BASIC_PASSWORD must be strings')
+    }
   }
 
   async Build () {
@@ -941,7 +1134,11 @@ class BotiumConnectorWebdriverIO {
 
     if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER]) {
       this.chromePort = Math.floor(Math.random() * 10000 + 40000)
-      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || [`--port=${this.chromePort}`, '--url-base=wd/hub']
+      const chromeArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ARGS] || (
+        usesLegacyChromeDriverHub()
+          ? [`--port=${this.chromePort}`, '--url-base=wd/hub']
+          : [`--port=${this.chromePort}`]
+      )
       if (this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]) {
         let addArgs = this.caps[Capabilities.WEBDRIVERIO_START_CHROMEDRIVER_ADDITIONAL_ARGS]
         if (_.isString(addArgs)) {
@@ -1024,7 +1221,7 @@ class BotiumConnectorWebdriverIO {
         options.protocol = 'http'
         options.hostname = '127.0.0.1'
         options.port = this.chromePort
-        options.path = '/wd/hub'
+        options.path = usesLegacyChromeDriverHub() ? '/wd/hub' : '/'
         options.capabilities = Object.assign({
           browserName: 'chrome',
           'goog:chromeOptions': {
@@ -1055,6 +1252,10 @@ class BotiumConnectorWebdriverIO {
           implicit: this.caps[Capabilities.WEBDRIVERIO_IMPLICIT_TIMEOUT]
         })
       }
+
+      this._configureHttpBasicAuth()
+      this._configureBrowserLog()
+      await this._openDevTools()
 
       if (this.stopped) throw new Error('Connector already stopped.') // Sometimes it takes too long for starting browser
 
@@ -1106,6 +1307,7 @@ class BotiumConnectorWebdriverIO {
       }
     } catch (err) {
       debug(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
+      this._closeDevTools()
       throw new Error(`WebDriver error on startup: ${err.message || util.inspect(err)}`)
     } finally {
       if (this.caps[Capabilities.WEBDRIVERIO_SCREENSHOTS_DEBUG]) {
@@ -1325,7 +1527,221 @@ class BotiumConnectorWebdriverIO {
     }, 1000)
   }
 
+  _browserLogMinRank () {
+    const value = this.caps[Capabilities.WEBDRIVERIO_BROWSERLOG]
+    if (_.isNil(value) || value === '') return browserLogRank.error
+    if (value === false || value === 0) return null
+    const text = String(value).trim().toLowerCase()
+    if (['false', 'off', 'none', 'no', '0'].includes(text)) return null
+    if (text === 'error') return browserLogRank.error
+    if (text === 'warn' || text === 'warning') return browserLogRank.warn
+    if (text === 'info') return browserLogRank.info
+    if (text === 'all') return browserLogRank.all
+    return undefined
+  }
+
+  _debuggerAddress () {
+    const caps = (this.browser && this.browser.capabilities) || {}
+    const chromiumOptions = caps['goog:chromeOptions'] || caps['ms:edgeOptions'] || {}
+    return chromiumOptions.debuggerAddress || null
+  }
+
+  _pageOrigin () {
+    const url = this.caps[Capabilities.WEBDRIVERIO_URL]
+    if (!url) throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME requires WEBDRIVERIO_URL')
+    try {
+      return new URL(url).origin
+    } catch (err) {
+      throw new Error(`WEBDRIVERIO_HTTP_BASIC_USERNAME requires a valid WEBDRIVERIO_URL (${err.message || err})`)
+    }
+  }
+
+  _configureHttpBasicAuth () {
+    const username = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_USERNAME]
+    const password = this.caps[Capabilities.WEBDRIVERIO_HTTP_BASIC_PASSWORD]
+    if (_.isNil(username) || `${username}` === '' || _.isNil(password)) return
+
+    const pageOrigin = this._pageOrigin()
+    this._httpBasicAuth = {
+      pageOrigin,
+      authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`
+    }
+    debug(`HTTP basic auth will be limited to ${pageOrigin} for user ${username}`)
+  }
+
+  _configureBrowserLog () {
+    const minRank = this._browserLogMinRank()
+    if (minRank === null || minRank === undefined) return
+    this._browserLogRank = minRank
+  }
+
+  async _openDevTools () {
+    if (!this._httpBasicAuth && !Number.isFinite(this._browserLogRank)) return
+    try {
+      await this._ensureDevTools({ required: !!this._httpBasicAuth })
+    } catch (err) {
+      if (this._httpBasicAuth) throw err
+      debug(`Browser console log not attached: ${err.message || err}`)
+    }
+  }
+
+  async _ensureDevTools ({ required }) {
+    if (this.devtools) return this.devtools
+    const address = this._debuggerAddress()
+    if (!address) {
+      if (required) {
+        throw new Error('WEBDRIVERIO_HTTP_BASIC_USERNAME requires a Chromium session with a Chrome DevTools Protocol debugger address (Chrome or Edge). Authorization is limited to the origin of WEBDRIVERIO_URL.')
+      }
+      debug('Chrome DevTools debugger address is not available, skipping browser console log')
+      return null
+    }
+
+    const client = new DevToolsClient(loadWebSocket())
+    client.onEvent = (message) => this._onDevToolsEvent(message)
+    try {
+      await client.connect(address)
+      this.devtools = client
+      await client.send('Target.setAutoAttach', {
+        autoAttach: true,
+        waitForDebuggerOnStart: false,
+        flatten: true
+      })
+      await new Promise((resolve) => setImmediate(resolve))
+      if (this._pendingTargetEnables && this._pendingTargetEnables.length) {
+        await Promise.all(this._pendingTargetEnables)
+      }
+      return client
+    } catch (err) {
+      try {
+        client.close()
+      } catch (closeErr) {
+        debug(`Failed to close Chrome DevTools websocket: ${closeErr.message || closeErr}`)
+      }
+      if (this.devtools === client) this.devtools = null
+      if (required) throw new Error(`Failed to attach Chrome DevTools for HTTP basic auth: ${err.message || err}`)
+      debug(`Browser console log not attached: ${err.message || err}`)
+      return null
+    }
+  }
+
+  _onDevToolsEvent (message) {
+    if (message.method === 'Target.attachedToTarget') {
+      const sessionId = message.params && message.params.sessionId
+      if (sessionId) this._trackTargetEnable(sessionId)
+      return
+    }
+    if (message.method === 'Fetch.requestPaused') {
+      this._continuePausedRequest(message)
+      return
+    }
+    this._logBrowserEvent(message)
+  }
+
+  _trackTargetEnable (sessionId) {
+    if (!this._devtoolsSessions) this._devtoolsSessions = new Set()
+    this._devtoolsSessions.add(sessionId)
+    if (!this._pendingTargetEnables) this._pendingTargetEnables = []
+    const job = this._enableDevToolsOnSession(sessionId).catch((err) => {
+      debug(`Failed to enable DevTools on attached target: ${err.message || err}`)
+    })
+    this._pendingTargetEnables.push(job)
+  }
+
+  async _enableDevToolsOnSession (sessionId) {
+    if (!this.devtools || !sessionId) return
+    if (this._httpBasicAuth) {
+      const origin = this._httpBasicAuth.pageOrigin
+      await this.devtools.send('Fetch.enable', {
+        patterns: [
+          { urlPattern: `${origin}/*`, requestStage: 'Request' },
+          { urlPattern: `${origin}/`, requestStage: 'Request' },
+          { urlPattern: origin, requestStage: 'Request' }
+        ]
+      }, sessionId)
+    }
+    if (!Number.isFinite(this._browserLogRank)) return
+    try {
+      await this.devtools.send('Runtime.enable', {}, sessionId)
+      await this.devtools.send('Log.enable', {}, sessionId)
+    } catch (err) {
+      debug(`Browser console log was not enabled on a page target: ${err.message || err}`)
+    }
+  }
+
+  _continuePausedRequest (message) {
+    const requestId = message.params && message.params.requestId
+    if (!requestId || !this.devtools) return
+    const sessionId = message.sessionId
+    let params = { requestId }
+    try {
+      const requestUrl = message.params && message.params.request && message.params.request.url
+      if (this._httpBasicAuth && requestUrl && new URL(requestUrl).origin === this._httpBasicAuth.pageOrigin) {
+        const headers = devtoolsHeaderEntries(message.params.request.headers)
+          .filter((header) => header.name.toLowerCase() !== 'authorization')
+        headers.push({ name: 'Authorization', value: this._httpBasicAuth.authorization })
+        params = { requestId, headers }
+      }
+    } catch (err) {
+      debug(`HTTP basic auth skipped header injection for a paused request: ${err.message || err}`)
+    }
+    this.devtools.send('Fetch.continueRequest', params, sessionId).catch((err) => {
+      debug(`Fetch.continueRequest failed: ${err.message || err}`)
+    })
+  }
+
+  _logBrowserEvent (message) {
+    const minRank = this._browserLogRank
+    if (!Number.isFinite(minRank)) return
+
+    if (message.method === 'Runtime.consoleAPICalled') {
+      const params = message.params || {}
+      const type = params.type || 'log'
+      const rank = Object.prototype.hasOwnProperty.call(browserConsoleRank, type) ? browserConsoleRank[type] : browserConsoleRank.info
+      if (rank < minRank) return
+      const text = (params.args || []).map(devtoolsArgText).filter((part) => part !== '').join(' ')
+      const frame = params.stackTrace && params.stackTrace.callFrames && params.stackTrace.callFrames[0]
+      const where = frame ? devtoolsLocation(frame.url, frame.lineNumber) : ''
+      debug(`browser console ${type}: ${text}${where ? ` (${where})` : ''}`)
+      return
+    }
+
+    if (message.method === 'Runtime.exceptionThrown') {
+      if (browserConsoleRank.error < minRank) return
+      const details = (message.params && message.params.exceptionDetails) || {}
+      const text = details.exception ? devtoolsArgText(details.exception) : (details.text || 'exception')
+      const where = devtoolsLocation(details.url, details.lineNumber)
+      debug(`browser exception: ${text}${where ? ` (${where})` : ''}`)
+      return
+    }
+
+    if (message.method === 'Log.entryAdded') {
+      const entry = (message.params && message.params.entry) || {}
+      if (browserLogSourcesToSkip[entry.source]) return
+      const level = entry.level || 'info'
+      const rank = Object.prototype.hasOwnProperty.call(browserConsoleRank, level) ? browserConsoleRank[level] : browserConsoleRank.info
+      if (rank < minRank) return
+      const where = devtoolsLocation(entry.url, entry.lineNumber)
+      debug(`browser ${entry.source || 'log'} ${level}: ${entry.text || ''}${where ? ` (${where})` : ''}`)
+    }
+  }
+
+  _closeDevTools () {
+    const client = this.devtools
+    this.devtools = null
+    this._httpBasicAuth = null
+    this._browserLogRank = null
+    this._devtoolsSessions = null
+    this._pendingTargetEnables = null
+    if (!client) return
+    try {
+      client.close()
+    } catch (err) {
+      debug(`Failed to close Chrome DevTools websocket: ${err.message || err}`)
+    }
+  }
+
   async _stopBrowser () {
+    this._closeDevTools()
     const localStop = async () => {
       try {
         await this.browser.deleteSession()
